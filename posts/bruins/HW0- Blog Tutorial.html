@@ -184,19 +184,24 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 
-<section id="tutorial" class="level1">
-<h1>Tutorial</h1>
-<p>Tutorial explaining how to construct an interesting data visualization of the Palmer Penguins data set</p>
+<section id="first-read-in-the-data" class="level1">
+<h1>First read in the data</h1>
 <div id="f4386308" class="cell" data-execution_count="89">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>url <span class="op">=</span> <span class="st">"https://raw.githubusercontent.com/pic16b-ucla/24W/main/datasets/palmer_penguins.csv"</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>penguins <span class="op">=</span> pd.read_csv(url)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>First let’s look at the first few rows of the dataset.</p>
+</section>
+<section id="now-lets-look-at-the-first-few-rows-of-the-dataset." class="level1">
+<h1>Now let’s look at the first few rows of the dataset.</h1>
 <div id="98724a7f" class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>penguins.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>It appears that there are a few numeric columns in our dataframe which would be easy to analyze. Let’s specifically look at two and plot them on a scatter plot. For this example, I chose ‘Culmen Length’ and ’Flipper Length). I imported the seaborn package as it has great functions for visualization. I chose to create a scatterplot because it is the best way to analyze numeric data against numeric data.</p>
+<p>It appears that there are a few numeric columns in our dataframe which would be easy to analyze. Let’s specifically look at two and plot them on a scatter plot.</p>
+</section>
+<section id="lets-import-the-seaborn-package-and-create-a-scatterplot" class="level1">
+<h1>Let’s import the seaborn package and create a scatterplot</h1>
+<p>For this example, I chose ‘Culmen Length’ and ’Flipper Length). I imported the seaborn package as it has great functions for visualization. I chose to create a scatterplot because it is the best way to analyze numeric data against numeric data.</p>
 <div id="4c8862e5" class="cell" data-execution_count="90">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -212,7 +217,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<p>It appears that there is a positive relationship between culmen length and flipper length. Let’s go even further through analyzing if the type of species affects this relationship. To do this, we add the hue parameter. I also used the set_title function to make our plot look even better!</p>
+<p>It appears that there is a positive relationship between culmen length and flipper length. # Now go one step further! Let’s go even further through analyzing if the type of species affects this relationship. To do this, we add the hue parameter. I also used the set_title function to make our plot look even better!</p>
 <div id="b3408a46" class="cell" data-execution_count="91">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>sns.scatterplot(</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    data <span class="op">=</span> penguins,</span>
@@ -231,6 +236,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>As we can see, species type does seem to affect the culmen length and flipper length values. For instance, there appears to be distinct groupings based upon species type, as the Gentoo Penguin appears to have the longest dimensions with the adelie penguins and chinstrap penguins having similar flipper lengths but differing culmen lengths.</p>
+</section>
+<section id="were-done" class="level1">
+<h1>We’re done!</h1>
 
 
 </section>
