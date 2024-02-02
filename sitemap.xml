@@ -2,18 +2,22 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://TylerNguyen25.github.io/PIC16B-Blog/posts/Visualization plotly/climate_database.html</loc>
-    <lastmod>2024-01-26T18:44:59.881Z</lastmod>
+    <lastmod>2024-02-02T06:48:40.603Z</lastmod>
   </url>
   <url>
-    <loc>https://TylerNguyen25.github.io/PIC16B-Blog/index.html</loc>
-    <lastmod>2024-01-24T01:20:23.487Z</lastmod>
+    <loc>https://TylerNguyen25.github.io/PIC16B-Blog/posts/bruins/HW0- Blog Tutorial.html</loc>
+    <lastmod>2024-01-26T18:07:23.727Z</lastmod>
   </url>
   <url>
     <loc>https://TylerNguyen25.github.io/PIC16B-Blog/about.html</loc>
     <lastmod>2024-01-12T06:20:25.801Z</lastmod>
   </url>
   <url>
-    <loc>https://TylerNguyen25.github.io/PIC16B-Blog/posts/bruins/HW0- Blog Tutorial.html</loc>
-    <lastmod>2024-01-26T18:07:23.727Z</lastmod>
+    <loc>https://TylerNguyen25.github.io/PIC16B-Blog/index.html</loc>
+    <lastmod>2024-01-24T01:20:23.487Z</lastmod>
+  </url>
+  <url>
+    <loc>https://TylerNguyen25.github.io/PIC16B-Blog/posts/TMDB_scraper/TMDB.html</loc>
+    <lastmod>2024-02-02T06:54:18.156Z</lastmod>
   </url>
 </urlset>
