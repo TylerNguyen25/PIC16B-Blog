@@ -254,15 +254,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>        <span class="co">"""</span></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">        Returns a dictionary of every actor and each movie they worked on</span></span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">        """</span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>        actor <span class="op">=</span> response.css(<span class="st">"h2.title a::text"</span>).get() <span class="co">#css command which displays actor name </span></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>        movies <span class="op">=</span> response.css(<span class="st">"a.tooltip bdi::text"</span>).getall() <span class="co">#css command which displays each movie/TV show actor worked on</span></span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> work <span class="kw">in</span> movies: <span class="co">#for every movie/TV show in movie/TV show list </span></span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>            <span class="cf">yield</span> { <span class="co">#create a dictionary with actor name and movie/TV show </span></span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>                <span class="st">"actor"</span>: actor,</span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>                <span class="st">"movie_or_TV_name"</span> : work</span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>            }</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>        actor_name <span class="op">=</span> response.css(<span class="st">"h2.title a::text"</span>).get() <span class="co">#css command which displays actor name </span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>        movie <span class="op">=</span> response.xpath(<span class="st">"//div//h3[text() = 'Acting']/following-sibling::table[1]//bdi/text()"</span>).getall() </span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>        <span class="co">#xpath command which displays each movie/TV show actor worked on</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> movie_or_TV_name <span class="kw">in</span> movie:</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>            <span class="cf">yield</span> { <span class="co">#create a dictionary with actor name and movie/TV show </span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>                <span class="st">"actor"</span>: actor_name,</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>                <span class="st">"movie_or_TV_name"</span> : movie_or_TV_name</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>            }</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>This function does the same thing the above two functions except it inspects the new response variable passed which is the individual actors page. We extract the actor names and every movie/TV show this actor worked on and store them in the <code>actor</code> and <code>movies</code> variables. Finally, we create a for loop to go over each <code>work</code> per actor, and uses these variables to create a dictionary of <code>{"actor": actor, "movie_or_TV_name": work}</code>.</p>
+<p>This function does the same thing the above two functions except it inspects the new response variable passed which is the individual actors page. We extract the actor names and every movie/TV show this actor worked on and store them in the <code>actor</code> and <code>movies</code> variables. For the movie path, we have to only look under the <code>Acting</code> table and to do this we use the <code>following-sibling</code> pseudo-element to do so. Finally, we create a for loop to go over each <code>work</code> per actor, and uses these variables to create a dictionary of <code>{"actor": actor_name, "movie_or_TV_name": movie_or_TV_name}</code>.</p>
 </section>
 <section id="insights-and-recommendations" class="level2">
 <h2 class="anchored" data-anchor-id="insights-and-recommendations">3. Insights and Recommendations</h2>
