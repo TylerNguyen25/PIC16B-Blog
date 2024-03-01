@@ -2,6 +2,7 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/image classification/ClassificationDogCat (1).html",
       "/posts/flask/Flask Tutorial.html",
       "/posts/TMDB_scraper/TMDB.html",
       "/posts/Visualization plotly/climate.html",
