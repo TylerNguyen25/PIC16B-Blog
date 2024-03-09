@@ -2,6 +2,7 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/Fakenews/Fakenews.html",
       "/posts/image classification/ClassificationDogCat (1).html",
       "/posts/flask/Flask Tutorial.html",
       "/posts/TMDB_scraper/TMDB.html",

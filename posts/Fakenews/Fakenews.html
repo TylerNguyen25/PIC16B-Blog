@@ -1,0 +1,1533 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.4.538">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Tyler Nguyen">
+<meta name="dcterms.date" content="2024-03-11">
+
+<title>Tyler’s Python Blog - Fake News?</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script><script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed fullcontent">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top quarto-banner">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">Tyler’s Python Blog</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html"> 
+<span class="menu-text">About</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/TylerNguyen25/PIC16B-Blog/tree/gh-pages"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+          <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">Fake News?</h1>
+                                <div class="quarto-categories">
+                <div class="quarto-category">Keras</div>
+                <div class="quarto-category">TensorFlow</div>
+                <div class="quarto-category">Python</div>
+                <div class="quarto-category">Neural Networks</div>
+              </div>
+                  </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      <div>
+      <div class="quarto-title-meta-heading">Author</div>
+      <div class="quarto-title-meta-contents">
+               <p>Tyler Nguyen </p>
+            </div>
+    </div>
+      
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">March 11, 2024</p>
+      </div>
+    </div>
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content quarto-banner-title-block" id="quarto-document-content">
+
+
+
+
+
+<p>In this blog post, we will construct a fake news classifer using TensorFlow.</p>
+<section id="acquiring-training-data" class="level1">
+<h1>1. Acquiring Training Data</h1>
+<p>Let us first start by importing all the packages and reading in our data. In particular, we import the <code>stopwords</code> method from the <code>nltk</code> package. We do so because we want to remove stop wrods wuch as “the” and “but”, as these words are considered to be meaningless in analyzing the text later on.</p>
+<div id="cell-4" class="cell" data-outputid="aae4e7df-4e28-4736-865b-80805ff34798" data-execution_count="27">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tensorflow <span class="im">as</span> tf</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> re</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> string</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> tensorflow.keras <span class="im">import</span> layers</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> tensorflow.keras <span class="im">import</span> losses</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> tensorflow <span class="im">import</span> keras</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.preprocessing <span class="im">import</span> LabelEncoder</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> tensorflow.keras <span class="im">import</span> utils</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co"># for embedding visualization</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> plotly.express <span class="im">as</span> px</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> plotly.io <span class="im">as</span> pio</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>pio.renderers.default<span class="op">=</span><span class="st">"iframe"</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>train_url <span class="op">=</span> <span class="st">"https://github.com/PhilChodrow/PIC16b/blob/master/datasets/fake_news_train.csv?raw=true"</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>train_df <span class="op">=</span> pd.read_csv(train_url)</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> nltk</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>nltk.download(<span class="st">'stopwords'</span>)</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> nltk.corpus <span class="im">import</span> stopwords</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>stop <span class="op">=</span> stopwords.words(<span class="st">'english'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[nltk_data] Downloading package stopwords to /root/nltk_data...
+[nltk_data]   Package stopwords is already up-to-date!</code></pre>
+</div>
+</div>
+<p>Each row of the data corresponds to an article. The <code>title</code> column gives the title of the article, while the <code>text</code> column gives the full article text. The final column, called <code>fake</code>, is <code>0</code> if the article is true and <code>1</code> if the article contains fake news, as determined by the authors of the paper above. Here’s what the dataset looks like:</p>
+<div id="cell-6" class="cell" data-outputid="00aa8709-397c-4ed8-e2ed-efba4acb2a41" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>train_df</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="2">
+
+  <div id="df-83b7e647-122d-46fe-8ddf-2cda4dee1cb6" class="colab-df-container">
+    <div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">Unnamed: 0</th>
+<th data-quarto-table-cell-role="th">title</th>
+<th data-quarto-table-cell-role="th">text</th>
+<th data-quarto-table-cell-role="th">fake</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>17366</td>
+<td>Merkel: Strong result for Austria's FPO 'big c...</td>
+<td>German Chancellor Angela Merkel said on Monday...</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>5634</td>
+<td>Trump says Pence will lead voter fraud panel</td>
+<td>WEST PALM BEACH, Fla.President Donald Trump sa...</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>17487</td>
+<td>JUST IN: SUSPECTED LEAKER and “Close Confidant...</td>
+<td>On December 5, 2017, Circa s Sara Carter warne...</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>12217</td>
+<td>Thyssenkrupp has offered help to Argentina ove...</td>
+<td>Germany s Thyssenkrupp, has offered assistance...</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>5535</td>
+<td>Trump say appeals court decision on travel ban...</td>
+<td>President Donald Trump on Thursday called the ...</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">22444</td>
+<td>10709</td>
+<td>ALARMING: NSA Refuses to Release Clinton-Lynch...</td>
+<td>If Clinton and Lynch just talked about grandki...</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">22445</td>
+<td>8731</td>
+<td>Can Pence's vow not to sling mud survive a Tru...</td>
+<td>() - In 1990, during a close and bitter congre...</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">22446</td>
+<td>4733</td>
+<td>Watch Trump Campaign Try To Spin Their Way Ou...</td>
+<td>A new ad by the Hillary Clinton SuperPac Prior...</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">22447</td>
+<td>3993</td>
+<td>Trump celebrates first 100 days as president, ...</td>
+<td>HARRISBURG, Pa.U.S. President Donald Trump hit...</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">22448</td>
+<td>12896</td>
+<td>TRUMP SUPPORTERS REACT TO DEBATE: “Clinton New...</td>
+<td>MELBOURNE, FL is a town with a population of 7...</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+
+<p>22449 rows × 4 columns</p>
+</div>
+    <div class="colab-df-buttons">
+
+  <div class="colab-df-container">
+    <button class="colab-df-convert" onclick="convertToInteractive('df-83b7e647-122d-46fe-8ddf-2cda4dee1cb6')" title="Convert this dataframe to an interactive table." style="display:none;">
+
+  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewbox="0 -960 960 960">
+    <path d="M120-120v-720h720v720H120Zm60-500h600v-160H180v160Zm220 220h160v-160H400v160Zm0 220h160v-160H400v160ZM180-400h160v-160H180v160Zm440 0h160v-160H620v160ZM180-180h160v-160H180v160Zm440 0h160v-160H620v160Z"></path>
+  </svg>
+    </button>
+
+  <style>
+    .colab-df-container {
+      display:flex;
+      gap: 12px;
+    }
+
+    .colab-df-convert {
+      background-color: #E8F0FE;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: none;
+      fill: #1967D2;
+      height: 32px;
+      padding: 0 0 0 0;
+      width: 32px;
+    }
+
+    .colab-df-convert:hover {
+      background-color: #E2EBFA;
+      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);
+      fill: #174EA6;
+    }
+
+    .colab-df-buttons div {
+      margin-bottom: 4px;
+    }
+
+    [theme=dark] .colab-df-convert {
+      background-color: #3B4455;
+      fill: #D2E3FC;
+    }
+
+    [theme=dark] .colab-df-convert:hover {
+      background-color: #434B5C;
+      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
+      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));
+      fill: #FFFFFF;
+    }
+  </style>
+
+    <script>
+      const buttonEl =
+        document.querySelector('#df-83b7e647-122d-46fe-8ddf-2cda4dee1cb6 button.colab-df-convert');
+      buttonEl.style.display =
+        google.colab.kernel.accessAllowed ? 'block' : 'none';
+
+      async function convertToInteractive(key) {
+        const element = document.querySelector('#df-83b7e647-122d-46fe-8ddf-2cda4dee1cb6');
+        const dataTable =
+          await google.colab.kernel.invokeFunction('convertToInteractive',
+                                                    [key], {});
+        if (!dataTable) return;
+
+        const docLinkHtml = 'Like what you see? Visit the ' +
+          '<a target="_blank" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'
+          + ' to learn more about interactive tables.';
+        element.innerHTML = '';
+        dataTable['output_type'] = 'display_data';
+        await google.colab.output.renderOutput(dataTable, element);
+        const docLink = document.createElement('div');
+        docLink.innerHTML = docLinkHtml;
+        element.appendChild(docLink);
+      }
+    </script>
+  </div>
+
+
+<div id="df-df43ab6f-1de6-4afb-a41d-5b12216b2789">
+  <button class="colab-df-quickchart" onclick="quickchart('df-df43ab6f-1de6-4afb-a41d-5b12216b2789')" title="Suggest charts" style="display:none;">
+
+<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewbox="0 0 24 24" width="24px">
+    <g>
+        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"></path>
+    </g>
+</svg>
+  </button>
+
+<style>
+  .colab-df-quickchart {
+      --bg-color: #E8F0FE;
+      --fill-color: #1967D2;
+      --hover-bg-color: #E2EBFA;
+      --hover-fill-color: #174EA6;
+      --disabled-fill-color: #AAA;
+      --disabled-bg-color: #DDD;
+  }
+
+  [theme=dark] .colab-df-quickchart {
+      --bg-color: #3B4455;
+      --fill-color: #D2E3FC;
+      --hover-bg-color: #434B5C;
+      --hover-fill-color: #FFFFFF;
+      --disabled-bg-color: #3B4455;
+      --disabled-fill-color: #666;
+  }
+
+  .colab-df-quickchart {
+    background-color: var(--bg-color);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: none;
+    fill: var(--fill-color);
+    height: 32px;
+    padding: 0;
+    width: 32px;
+  }
+
+  .colab-df-quickchart:hover {
+    background-color: var(--hover-bg-color);
+    box-shadow: 0 1px 2px rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
+    fill: var(--button-hover-fill-color);
+  }
+
+  .colab-df-quickchart-complete:disabled,
+  .colab-df-quickchart-complete:disabled:hover {
+    background-color: var(--disabled-bg-color);
+    fill: var(--disabled-fill-color);
+    box-shadow: none;
+  }
+
+  .colab-df-spinner {
+    border: 2px solid var(--fill-color);
+    border-color: transparent;
+    border-bottom-color: var(--fill-color);
+    animation:
+      spin 1s steps(1) infinite;
+  }
+
+  @keyframes spin {
+    0% {
+      border-color: transparent;
+      border-bottom-color: var(--fill-color);
+      border-left-color: var(--fill-color);
+    }
+    20% {
+      border-color: transparent;
+      border-left-color: var(--fill-color);
+      border-top-color: var(--fill-color);
+    }
+    30% {
+      border-color: transparent;
+      border-left-color: var(--fill-color);
+      border-top-color: var(--fill-color);
+      border-right-color: var(--fill-color);
+    }
+    40% {
+      border-color: transparent;
+      border-right-color: var(--fill-color);
+      border-top-color: var(--fill-color);
+    }
+    60% {
+      border-color: transparent;
+      border-right-color: var(--fill-color);
+    }
+    80% {
+      border-color: transparent;
+      border-right-color: var(--fill-color);
+      border-bottom-color: var(--fill-color);
+    }
+    90% {
+      border-color: transparent;
+      border-bottom-color: var(--fill-color);
+    }
+  }
+</style>
+
+  <script>
+    async function quickchart(key) {
+      const quickchartButtonEl =
+        document.querySelector('#' + key + ' button');
+      quickchartButtonEl.disabled = true;  // To prevent multiple clicks.
+      quickchartButtonEl.classList.add('colab-df-spinner');
+      try {
+        const charts = await google.colab.kernel.invokeFunction(
+            'suggestCharts', [key], {});
+      } catch (error) {
+        console.error('Error during call to suggestCharts:', error);
+      }
+      quickchartButtonEl.classList.remove('colab-df-spinner');
+      quickchartButtonEl.classList.add('colab-df-quickchart-complete');
+    }
+    (() => {
+      let quickchartButtonEl =
+        document.querySelector('#df-df43ab6f-1de6-4afb-a41d-5b12216b2789 button');
+      quickchartButtonEl.style.display =
+        google.colab.kernel.accessAllowed ? 'block' : 'none';
+    })();
+  </script>
+</div>
+
+  <div id="id_37aac289-b2b1-4f4a-af33-2dfaae0565d2">
+    <style>
+      .colab-df-generate {
+        background-color: #E8F0FE;
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        display: none;
+        fill: #1967D2;
+        height: 32px;
+        padding: 0 0 0 0;
+        width: 32px;
+      }
+
+      .colab-df-generate:hover {
+        background-color: #E2EBFA;
+        box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);
+        fill: #174EA6;
+      }
+
+      [theme=dark] .colab-df-generate {
+        background-color: #3B4455;
+        fill: #D2E3FC;
+      }
+
+      [theme=dark] .colab-df-generate:hover {
+        background-color: #434B5C;
+        box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
+        filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));
+        fill: #FFFFFF;
+      }
+    </style>
+    <button class="colab-df-generate" onclick="generateWithVariable('train_df')" title="Generate code using this dataframe." style="display:none;">
+
+  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewbox="0 0 24 24" width="24px">
+    <path d="M7,19H8.4L18.45,9,17,7.55,7,17.6ZM5,21V16.75L18.45,3.32a2,2,0,0,1,2.83,0l1.4,1.43a1.91,1.91,0,0,1,.58,1.4,1.91,1.91,0,0,1-.58,1.4L9.25,21ZM18.45,9,17,7.55Zm-12,3A5.31,5.31,0,0,0,4.9,8.1,5.31,5.31,0,0,0,1,6.5,5.31,5.31,0,0,0,4.9,4.9,5.31,5.31,0,0,0,6.5,1,5.31,5.31,0,0,0,8.1,4.9,5.31,5.31,0,0,0,12,6.5,5.46,5.46,0,0,0,6.5,12Z"></path>
+  </svg>
+    </button>
+    <script>
+      (() => {
+      const buttonEl =
+        document.querySelector('#id_37aac289-b2b1-4f4a-af33-2dfaae0565d2 button.colab-df-generate');
+      buttonEl.style.display =
+        google.colab.kernel.accessAllowed ? 'block' : 'none';
+
+      buttonEl.onclick = () => {
+        google.colab.notebook.generateWithVariable('train_df');
+      }
+      })();
+    </script>
+  </div>
+
+    </div>
+  </div>
+</div>
+</div>
+</section>
+<section id="making-a-dataset" class="level1">
+<h1>2. Making a dataset</h1>
+<p>Now let us construct a function called <code>make_dataset</code>. This function does three things: - Changes the text to lowercase - Removes stopwrods from the article <code>text</code> and <code>title</code> - Constructs and returns a <code>tf.data.Dataset</code> with two inputs and one output. The input is in the form <code>(title,text)</code> and the output consusts only of the <code>fake</code> column</p>
+<div id="cell-9" class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_dataset(df):</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># change text to lowercase</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  df[<span class="st">'text'</span>] <span class="op">=</span> df[<span class="st">'text'</span>].<span class="bu">str</span>.lower()</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  df[<span class="st">'title'</span>] <span class="op">=</span> df[<span class="st">'title'</span>].<span class="bu">str</span>.lower()</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="co"># remove stopwords</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  df[<span class="st">'text'</span>] <span class="op">=</span> df[<span class="st">'text'</span>].<span class="bu">apply</span>(<span class="kw">lambda</span> x: <span class="st">' '</span>.join([word <span class="cf">for</span> word <span class="kw">in</span> x.split() <span class="cf">if</span> word <span class="kw">not</span> <span class="kw">in</span> (stop)]))</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  df[<span class="st">'title'</span>] <span class="op">=</span> df[<span class="st">'title'</span>].<span class="bu">apply</span>(<span class="kw">lambda</span> x: <span class="st">' '</span>.join([word <span class="cf">for</span> word <span class="kw">in</span> x.split() <span class="cf">if</span> word <span class="kw">not</span> <span class="kw">in</span> (stop)]))</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  <span class="co"># consturct tf.data.Dataset with two inputs and one output</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  Dataset <span class="op">=</span> tf.data.Dataset.from_tensor_slices(({</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>      <span class="st">"title"</span> : df[[<span class="st">"title"</span>]],</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>      <span class="st">"text"</span> : df[[<span class="st">"text"</span>]]</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>  }, {</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>      <span class="st">"fake"</span> : df[<span class="st">"fake"</span>]</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>  }))</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>  <span class="co"># batch our Dataset to increase training speed</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>  Dataset <span class="op">=</span> Dataset.batch(<span class="dv">100</span>)</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> Dataset</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now we call this function on our data, and split 20 percent of this data into our validation set.</p>
+<div id="cell-11" class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span> make_dataset(train_df)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span> data.shuffle(buffer_size <span class="op">=</span> <span class="bu">len</span>(data))</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>train_size <span class="op">=</span> <span class="bu">int</span>(<span class="fl">0.8</span><span class="op">*</span><span class="bu">len</span>(data)) <span class="co"># split Dataset</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>val_size   <span class="op">=</span> <span class="bu">int</span>(<span class="fl">0.2</span><span class="op">*</span><span class="bu">len</span>(data))</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>train <span class="op">=</span> data.take(train_size)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>val <span class="op">=</span> data.skip(train_size).take(val_size)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>To judge our model’s improvement later, let us calculate the base rate of our model.</p>
+<div id="cell-13" class="cell" data-outputid="dcbd6a89-c4b8-4a1f-a584-b18131594f7d" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>train_df[<span class="st">'fake'</span>].value_counts()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="15">
+<pre><code>1    11740
+0    10709
+Name: fake, dtype: int64</code></pre>
+</div>
+</div>
+<div id="cell-14" class="cell" data-outputid="95d331e2-6aef-4bf8-d800-aac40db6dfdd" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="dv">11740</span><span class="op">/</span>(<span class="dv">11740</span><span class="op">+</span><span class="dv">10709</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="16">
+<pre><code>0.522963160942581</code></pre>
+</div>
+</div>
+<p>The base rate of our model is around 52.3 percent.</p>
+</section>
+<section id="create-models" class="level1">
+<h1>3. Create Models</h1>
+<p>When constructing our <code>Keras</code> models, we need to keep this question in mind: <em>When detecting fake news, is it more effective to focus on just the title, the full text of the article, or both?</em></p>
+<p>In order to answer this question, we will construt three <code>Keras</code> models. - The first model we only use the article title - The second model, we only use the article text - The third model, we use both the article title and the article text</p>
+<p>To start, let us prepare some text and title vectorization layers:</p>
+<div id="cell-18" class="cell" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>size_vocabulary <span class="op">=</span> <span class="dv">2000</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> standardization(input_data):</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    lowercase <span class="op">=</span> tf.strings.lower(input_data)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    no_punctuation <span class="op">=</span> tf.strings.regex_replace(lowercase,</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>                                  <span class="st">'[</span><span class="sc">%s</span><span class="st">]'</span> <span class="op">%</span> re.escape(string.punctuation),<span class="st">''</span>)</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> no_punctuation</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>title_vectorize_layer <span class="op">=</span> layers.TextVectorization(</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    standardize<span class="op">=</span>standardization,</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    max_tokens<span class="op">=</span>size_vocabulary, <span class="co"># only consider this many words</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    output_mode<span class="op">=</span><span class="st">'int'</span>,</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    output_sequence_length<span class="op">=</span><span class="dv">500</span>)</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>title_vectorize_layer.adapt(train.<span class="bu">map</span>(<span class="kw">lambda</span> x, y: x[<span class="st">"title"</span>]))</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>text_vectorize_layer <span class="op">=</span> layers.TextVectorization(</span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>    standardize<span class="op">=</span>standardization,</span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>    max_tokens<span class="op">=</span>size_vocabulary,</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>    output_mode<span class="op">=</span><span class="st">'int'</span>,</span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>    output_sequence_length<span class="op">=</span><span class="dv">500</span>)</span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>text_vectorize_layer.adapt(train.<span class="bu">map</span>(<span class="kw">lambda</span> x, y: x[<span class="st">"text"</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>And also let us define our <code>title_input</code> and <code>text_input</code> such that it can be easily reused in our models.</p>
+<div id="cell-20" class="cell" data-execution_count="19">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>title_input <span class="op">=</span> keras.Input(</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    shape<span class="op">=</span>(<span class="dv">1</span>,),</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    name <span class="op">=</span> <span class="st">"title"</span>, <span class="co"># same name as the dictionary key in the dataset</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    dtype <span class="op">=</span> <span class="st">"string"</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>text_input <span class="op">=</span> keras.Input(</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    shape<span class="op">=</span>(<span class="dv">1</span>,),</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    name <span class="op">=</span> <span class="st">"text"</span>,</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>    dtype <span class="op">=</span> <span class="st">"string"</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="title-model" class="level2">
+<h2 class="anchored" data-anchor-id="title-model">Title Model</h2>
+<p>The first model only uses the article title. Because our second model will be an exact copy of our first model, only using the article text instead of article title, we will create a function called <code>input_features</code> such that we can reuse the code and streamline our process. The parameter the function takes in will be whether the input is <code>title_input</code> or <code>text_input</code>.</p>
+<div id="cell-23" class="cell" data-execution_count="38">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> input_features(feature_input):</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  new_features <span class="op">=</span> text_vectorize_layer(feature_input)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  new_features <span class="op">=</span> layers.Embedding(size_vocabulary, output_dim <span class="op">=</span> <span class="dv">4</span>, name<span class="op">=</span><span class="st">"embedding"</span>)(new_features)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  new_features <span class="op">=</span> layers.Dropout(<span class="fl">0.2</span>)(new_features)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  new_features <span class="op">=</span> layers.GlobalAveragePooling1D()(new_features)</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  new_features <span class="op">=</span> layers.Dropout(<span class="fl">0.2</span>)(new_features)</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>  new_features <span class="op">=</span> layers.Dense(<span class="dv">2</span>, activation<span class="op">=</span><span class="st">'relu'</span>, name<span class="op">=</span><span class="st">"fake"</span>)(new_features)</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  model <span class="op">=</span> keras.Model(</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># only using text</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    inputs <span class="op">=</span> [feature_input],</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    outputs <span class="op">=</span> new_features</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> model</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="cell-24" class="cell" data-outputid="8cabd597-1846-4720-8b1a-c9be0a72f9a8" data-execution_count="39">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># only using title</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>model1 <span class="op">=</span> input_features(title_input)</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>model1.summary()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Model: "model_6"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ title (InputLayer)          [(None, 1)]               0         
+                                                                 
+ text_vectorization_1 (Text  (None, 500)               0         
+ Vectorization)                                                  
+                                                                 
+ embedding (Embedding)       (None, 500, 4)            8000      
+                                                                 
+ dropout_10 (Dropout)        (None, 500, 4)            0         
+                                                                 
+ global_average_pooling1d_5  (None, 4)                 0         
+  (GlobalAveragePooling1D)                                       
+                                                                 
+ dropout_11 (Dropout)        (None, 4)                 0         
+                                                                 
+ fake (Dense)                (None, 2)                 10        
+                                                                 
+=================================================================
+Total params: 8010 (31.29 KB)
+Trainable params: 8010 (31.29 KB)
+Non-trainable params: 0 (0.00 Byte)
+_________________________________________________________________</code></pre>
+</div>
+</div>
+<div id="cell-25" class="cell" data-outputid="3efd1d88-ac02-468b-b92b-9a2232fd7b23" data-execution_count="40">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>utils.plot_model(model1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="40">
+<div>
+<figure class="figure">
+<p><img src="Fakenews_files/figure-html/cell-12-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="cell-26" class="cell" data-outputid="7522bec7-a30e-4743-a241-a7035a3120fb" data-execution_count="41">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>model1.<span class="bu">compile</span>(optimizer<span class="op">=</span><span class="st">"adam"</span>,</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>              loss <span class="op">=</span> losses.SparseCategoricalCrossentropy(from_logits<span class="op">=</span><span class="va">True</span>),</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>              metrics<span class="op">=</span>[<span class="st">"accuracy"</span>])</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>history <span class="op">=</span> model1.fit(train,</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>                    validation_data<span class="op">=</span>val,</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>                    epochs <span class="op">=</span> <span class="dv">20</span>,</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>                    verbose <span class="op">=</span> <span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Epoch 1/20
+180/180 [==============================] - 12s 61ms/step - loss: 0.6932 - accuracy: 0.4756 - val_loss: 0.6931 - val_accuracy: 0.4742
+Epoch 2/20
+180/180 [==============================] - 1s 8ms/step - loss: 0.6931 - accuracy: 0.4766 - val_loss: 0.6931 - val_accuracy: 0.4798
+Epoch 3/20
+180/180 [==============================] - 1s 6ms/step - loss: 0.6931 - accuracy: 0.4756 - val_loss: 0.6931 - val_accuracy: 0.4856
+Epoch 4/20
+180/180 [==============================] - 1s 6ms/step - loss: 0.6925 - accuracy: 0.4748 - val_loss: 0.6913 - val_accuracy: 0.4798
+Epoch 5/20
+180/180 [==============================] - 1s 5ms/step - loss: 0.6903 - accuracy: 0.4767 - val_loss: 0.6886 - val_accuracy: 0.4836
+Epoch 6/20
+180/180 [==============================] - 2s 11ms/step - loss: 0.6872 - accuracy: 0.4777 - val_loss: 0.6852 - val_accuracy: 0.4734
+Epoch 7/20
+180/180 [==============================] - 1s 6ms/step - loss: 0.6831 - accuracy: 0.4782 - val_loss: 0.6805 - val_accuracy: 0.4776
+Epoch 8/20
+180/180 [==============================] - 1s 8ms/step - loss: 0.6782 - accuracy: 0.4762 - val_loss: 0.6761 - val_accuracy: 0.4704
+Epoch 9/20
+180/180 [==============================] - 1s 8ms/step - loss: 0.6735 - accuracy: 0.4737 - val_loss: 0.6715 - val_accuracy: 0.4702
+Epoch 10/20
+180/180 [==============================] - 1s 6ms/step - loss: 0.6677 - accuracy: 0.4755 - val_loss: 0.6637 - val_accuracy: 0.4873
+Epoch 11/20
+180/180 [==============================] - 1s 6ms/step - loss: 0.6614 - accuracy: 0.4817 - val_loss: 0.6590 - val_accuracy: 0.4736
+Epoch 12/20
+180/180 [==============================] - 1s 6ms/step - loss: 0.6567 - accuracy: 0.4768 - val_loss: 0.6523 - val_accuracy: 0.4829
+Epoch 13/20
+180/180 [==============================] - 1s 7ms/step - loss: 0.6515 - accuracy: 0.4771 - val_loss: 0.6495 - val_accuracy: 0.4667
+Epoch 14/20
+180/180 [==============================] - 2s 10ms/step - loss: 0.6464 - accuracy: 0.4763 - val_loss: 0.6417 - val_accuracy: 0.4776
+Epoch 15/20
+180/180 [==============================] - 1s 6ms/step - loss: 0.6414 - accuracy: 0.4774 - val_loss: 0.6404 - val_accuracy: 0.4702
+Epoch 16/20
+180/180 [==============================] - 1s 6ms/step - loss: 0.6362 - accuracy: 0.4756 - val_loss: 0.6344 - val_accuracy: 0.4771
+Epoch 17/20
+180/180 [==============================] - 1s 6ms/step - loss: 0.6308 - accuracy: 0.4791 - val_loss: 0.6264 - val_accuracy: 0.4838
+Epoch 18/20
+180/180 [==============================] - 1s 5ms/step - loss: 0.6093 - accuracy: 0.6784 - val_loss: 0.5800 - val_accuracy: 0.8389
+Epoch 19/20
+180/180 [==============================] - 1s 6ms/step - loss: 0.5705 - accuracy: 0.8155 - val_loss: 0.5525 - val_accuracy: 0.8511
+Epoch 20/20
+180/180 [==============================] - 1s 6ms/step - loss: 0.5498 - accuracy: 0.8197 - val_loss: 0.5359 - val_accuracy: 0.8542</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/usr/local/lib/python3.10/dist-packages/keras/src/engine/functional.py:642: UserWarning:
+
+Input dict contained keys ['text'] which did not match any model input. They will be ignored by the model.
+</code></pre>
+</div>
+</div>
+<p>Let us construct a graph of the model’s training and validation accuracy. We create a function called <code>validation_plot</code> to streamline this process.</p>
+<div id="cell-28" class="cell" data-execution_count="42">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> validation_plot(model):</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  plt.plot(history.history[<span class="st">"accuracy"</span>], label <span class="op">=</span> <span class="st">"training"</span>)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  plt.plot(history.history[<span class="st">"val_accuracy"</span>], label <span class="op">=</span> <span class="st">"validation"</span>)</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>  plt.gca().<span class="bu">set</span>(xlabel <span class="op">=</span> <span class="st">"epoch"</span>, ylabel <span class="op">=</span> <span class="st">"accuracy"</span>)</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  plt.legend()</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> plt</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="cell-29" class="cell" data-outputid="6851c8fa-1dba-43c0-833f-c6d1b30bf724" data-execution_count="44">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>validation_plot(history)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Fakenews_files/figure-html/cell-15-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>As we can see from our graph, the validation accuracy is around 86 to 97 percent and there does not appear to be overfitting, illustrating that our <code>dropout</code> layers are working as intended and we should not change them for our later models.</p>
+</section>
+<section id="text-model" class="level2">
+<h2 class="anchored" data-anchor-id="text-model">Text Model</h2>
+<p>Our second model will only use the article text. Because we will reuse the same structure as the first model, we call our <code>input_features</code> function.</p>
+<div id="cell-33" class="cell" data-outputid="a988dc79-247a-4a20-aa26-74996f5e74ab" data-execution_count="45">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>model2 <span class="op">=</span> input_features(text_input)</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>model2.summary()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Model: "model_7"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ text (InputLayer)           [(None, 1)]               0         
+                                                                 
+ text_vectorization_1 (Text  (None, 500)               0         
+ Vectorization)                                                  
+                                                                 
+ embedding (Embedding)       (None, 500, 4)            8000      
+                                                                 
+ dropout_12 (Dropout)        (None, 500, 4)            0         
+                                                                 
+ global_average_pooling1d_6  (None, 4)                 0         
+  (GlobalAveragePooling1D)                                       
+                                                                 
+ dropout_13 (Dropout)        (None, 4)                 0         
+                                                                 
+ fake (Dense)                (None, 2)                 10        
+                                                                 
+=================================================================
+Total params: 8010 (31.29 KB)
+Trainable params: 8010 (31.29 KB)
+Non-trainable params: 0 (0.00 Byte)
+_________________________________________________________________</code></pre>
+</div>
+</div>
+<div id="cell-34" class="cell" data-outputid="7ca36ec8-290a-4eca-e0bd-291a8db38d2e" data-execution_count="47">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>utils.plot_model(model2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="47">
+<div>
+<figure class="figure">
+<p><img src="Fakenews_files/figure-html/cell-17-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="cell-35" class="cell" data-outputid="e0c683c4-a2fb-4212-cdbb-aefcf37f9de7" data-execution_count="48">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>model2.<span class="bu">compile</span>(optimizer<span class="op">=</span><span class="st">"adam"</span>,</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>              loss <span class="op">=</span> losses.SparseCategoricalCrossentropy(from_logits<span class="op">=</span><span class="va">True</span>),</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>              metrics<span class="op">=</span>[<span class="st">"accuracy"</span>])</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>history <span class="op">=</span> model2.fit(train,</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>                    validation_data<span class="op">=</span>val,</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>                    epochs <span class="op">=</span> <span class="dv">20</span>,</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>                    verbose <span class="op">=</span> <span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Epoch 1/20
+180/180 [==============================] - 11s 53ms/step - loss: 0.6860 - accuracy: 0.5298 - val_loss: 0.6788 - val_accuracy: 0.5224
+Epoch 2/20
+180/180 [==============================] - 2s 13ms/step - loss: 0.6554 - accuracy: 0.6913 - val_loss: 0.6208 - val_accuracy: 0.8551
+Epoch 3/20
+180/180 [==============================] - 2s 13ms/step - loss: 0.5951 - accuracy: 0.8422 - val_loss: 0.5605 - val_accuracy: 0.9082
+Epoch 4/20
+180/180 [==============================] - 3s 17ms/step - loss: 0.5359 - accuracy: 0.8754 - val_loss: 0.5008 - val_accuracy: 0.9282
+Epoch 5/20
+180/180 [==============================] - 2s 11ms/step - loss: 0.4800 - accuracy: 0.8984 - val_loss: 0.4502 - val_accuracy: 0.9358
+Epoch 6/20
+180/180 [==============================] - 2s 11ms/step - loss: 0.4341 - accuracy: 0.9135 - val_loss: 0.4014 - val_accuracy: 0.9453
+Epoch 7/20
+180/180 [==============================] - 2s 11ms/step - loss: 0.3938 - accuracy: 0.9279 - val_loss: 0.3691 - val_accuracy: 0.9453
+Epoch 8/20
+180/180 [==============================] - 2s 11ms/step - loss: 0.3598 - accuracy: 0.9354 - val_loss: 0.3284 - val_accuracy: 0.9492
+Epoch 9/20
+180/180 [==============================] - 3s 16ms/step - loss: 0.3299 - accuracy: 0.9397 - val_loss: 0.3094 - val_accuracy: 0.9542
+Epoch 10/20
+180/180 [==============================] - 2s 11ms/step - loss: 0.3048 - accuracy: 0.9437 - val_loss: 0.2876 - val_accuracy: 0.9536
+Epoch 11/20
+180/180 [==============================] - 2s 11ms/step - loss: 0.2839 - accuracy: 0.9484 - val_loss: 0.2624 - val_accuracy: 0.9576
+Epoch 12/20
+180/180 [==============================] - 3s 15ms/step - loss: 0.2650 - accuracy: 0.9508 - val_loss: 0.2445 - val_accuracy: 0.9462
+Epoch 13/20
+180/180 [==============================] - 3s 15ms/step - loss: 0.2492 - accuracy: 0.9523 - val_loss: 0.2247 - val_accuracy: 0.9624
+Epoch 14/20
+180/180 [==============================] - 2s 11ms/step - loss: 0.2346 - accuracy: 0.9563 - val_loss: 0.2226 - val_accuracy: 0.9616
+Epoch 15/20
+180/180 [==============================] - 2s 11ms/step - loss: 0.2251 - accuracy: 0.9553 - val_loss: 0.2088 - val_accuracy: 0.9607
+Epoch 16/20
+180/180 [==============================] - 2s 11ms/step - loss: 0.2115 - accuracy: 0.9591 - val_loss: 0.1950 - val_accuracy: 0.9651
+Epoch 17/20
+180/180 [==============================] - 3s 16ms/step - loss: 0.2028 - accuracy: 0.9609 - val_loss: 0.1820 - val_accuracy: 0.9702
+Epoch 18/20
+180/180 [==============================] - 3s 15ms/step - loss: 0.1927 - accuracy: 0.9641 - val_loss: 0.1745 - val_accuracy: 0.9700
+Epoch 19/20
+180/180 [==============================] - 2s 11ms/step - loss: 0.1864 - accuracy: 0.9642 - val_loss: 0.1678 - val_accuracy: 0.9696
+Epoch 20/20
+180/180 [==============================] - 3s 14ms/step - loss: 0.1773 - accuracy: 0.9664 - val_loss: 0.1633 - val_accuracy: 0.9671</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/usr/local/lib/python3.10/dist-packages/keras/src/engine/functional.py:642: UserWarning:
+
+Input dict contained keys ['title'] which did not match any model input. They will be ignored by the model.
+</code></pre>
+</div>
+</div>
+<div id="cell-36" class="cell" data-outputid="13be4b74-f175-4ec6-cfaa-1fed3ad1700e" data-execution_count="50">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>validation_plot(history)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Fakenews_files/figure-html/cell-19-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>As we can see, our our validation accuracy is much better than our first model, sitting at around 96 percent. This is expected as text reveals a lot more than just the title because there are more words to analyze. Let us see if we can improve this model further through taking into account both <code>text</code> and <code>title</code> variables.</p>
+</section>
+<section id="text-and-title-model" class="level2">
+<h2 class="anchored" data-anchor-id="text-and-title-model">Text and Title Model</h2>
+<p>Our third model will use both the article text and title. Because we don’t want to share an embedding layer, we must make one for both title and text.</p>
+<div id="cell-40" class="cell" data-execution_count="52">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>title_features <span class="op">=</span> title_vectorize_layer(title_input)</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>text_features <span class="op">=</span> text_vectorize_layer(text_input)</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Because we do not want to share an embedding layer, we make one for title and text</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>title_embedding <span class="op">=</span> layers.Embedding(size_vocabulary, output_dim <span class="op">=</span> <span class="dv">4</span>)</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>text_embedding <span class="op">=</span> layers.Embedding(size_vocabulary, output_dim <span class="op">=</span> <span class="dv">4</span>)</span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>title_features <span class="op">=</span> title_embedding(title_features)</span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>text_features <span class="op">=</span> text_embedding(text_features)</span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>title_features <span class="op">=</span> layers.Dense(<span class="dv">32</span>, activation<span class="op">=</span><span class="st">'relu'</span>)(title_features)</span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>text_features <span class="op">=</span> layers.Dense(<span class="dv">32</span>, activation<span class="op">=</span><span class="st">'relu'</span>)(text_features)</span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a><span class="co">#cocatenate the two features together</span></span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a>together <span class="op">=</span> layers.concatenate([title_features, text_features], axis <span class="op">=</span> <span class="dv">1</span>)</span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a>together <span class="op">=</span> layers.Dropout(<span class="fl">0.2</span>)(together)</span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a>together <span class="op">=</span> layers.GlobalAveragePooling1D()(together)</span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a>together <span class="op">=</span> layers.Dropout(<span class="fl">0.2</span>)(together)</span>
+<span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a>together <span class="op">=</span> layers.Dense(<span class="dv">2</span>, activation<span class="op">=</span><span class="st">'relu'</span>, name <span class="op">=</span> <span class="st">'fake'</span>)(together)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="cell-41" class="cell" data-outputid="44a40f21-ca2d-4f69-a19f-ba033b6eabe2" data-execution_count="54">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>model3 <span class="op">=</span> keras.Model(</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>    inputs <span class="op">=</span> [title_input, text_input],</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>    outputs <span class="op">=</span> together</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>model3.summary()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Model: "model_10"
+__________________________________________________________________________________________________
+ Layer (type)                Output Shape                 Param #   Connected to                  
+==================================================================================================
+ title (InputLayer)          [(None, 1)]                  0         []                            
+                                                                                                  
+ text (InputLayer)           [(None, 1)]                  0         []                            
+                                                                                                  
+ text_vectorization (TextVe  (None, 500)                  0         ['title[0][0]']               
+ ctorization)                                                                                     
+                                                                                                  
+ text_vectorization_1 (Text  (None, 500)                  0         ['text[0][0]']                
+ Vectorization)                                                                                   
+                                                                                                  
+ embedding_2 (Embedding)     (None, 500, 4)               8000      ['text_vectorization[3][0]']  
+                                                                                                  
+ embedding_3 (Embedding)     (None, 500, 4)               8000      ['text_vectorization_1[6][0]']
+                                                                                                  
+ dense_2 (Dense)             (None, 500, 32)              160       ['embedding_2[0][0]']         
+                                                                                                  
+ dense_3 (Dense)             (None, 500, 32)              160       ['embedding_3[0][0]']         
+                                                                                                  
+ concatenate_1 (Concatenate  (None, 1000, 32)             0         ['dense_2[0][0]',             
+ )                                                                   'dense_3[0][0]']             
+                                                                                                  
+ dropout_16 (Dropout)        (None, 1000, 32)             0         ['concatenate_1[0][0]']       
+                                                                                                  
+ global_average_pooling1d_8  (None, 32)                   0         ['dropout_16[0][0]']          
+  (GlobalAveragePooling1D)                                                                        
+                                                                                                  
+ dropout_17 (Dropout)        (None, 32)                   0         ['global_average_pooling1d_8[0
+                                                                    ][0]']                        
+                                                                                                  
+ fake (Dense)                (None, 2)                    66        ['dropout_17[0][0]']          
+                                                                                                  
+==================================================================================================
+Total params: 16386 (64.01 KB)
+Trainable params: 16386 (64.01 KB)
+Non-trainable params: 0 (0.00 Byte)
+__________________________________________________________________________________________________</code></pre>
+</div>
+</div>
+<div id="cell-42" class="cell" data-outputid="f458a673-7848-49fa-b1e2-f020292b740d" data-execution_count="55">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>keras.utils.plot_model(model3)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="55">
+<div>
+<figure class="figure">
+<p><img src="Fakenews_files/figure-html/cell-22-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="cell-43" class="cell" data-outputid="37df79b3-b4fb-4950-9375-34eeaa122a7e" data-execution_count="56">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>model3.<span class="bu">compile</span>(optimizer<span class="op">=</span><span class="st">"adam"</span>,</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>              loss <span class="op">=</span> losses.SparseCategoricalCrossentropy(from_logits<span class="op">=</span><span class="va">True</span>),</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>              metrics<span class="op">=</span>[<span class="st">"accuracy"</span>])</span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>history <span class="op">=</span> model3.fit(train,</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>                    validation_data<span class="op">=</span>val,</span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>                    epochs <span class="op">=</span> <span class="dv">20</span>,</span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>                    verbose <span class="op">=</span> <span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Epoch 1/20
+180/180 [==============================] - 19s 94ms/step - loss: 0.6873 - accuracy: 0.5399 - val_loss: 0.6697 - val_accuracy: 0.5378
+Epoch 2/20
+180/180 [==============================] - 6s 35ms/step - loss: 0.6137 - accuracy: 0.7468 - val_loss: 0.5256 - val_accuracy: 0.9135
+Epoch 3/20
+180/180 [==============================] - 3s 19ms/step - loss: 0.4502 - accuracy: 0.8619 - val_loss: 0.3536 - val_accuracy: 0.9429
+Epoch 4/20
+180/180 [==============================] - 6s 33ms/step - loss: 0.3293 - accuracy: 0.9011 - val_loss: 0.2595 - val_accuracy: 0.9518
+Epoch 5/20
+180/180 [==============================] - 4s 19ms/step - loss: 0.2588 - accuracy: 0.9289 - val_loss: 0.1988 - val_accuracy: 0.9584
+Epoch 6/20
+180/180 [==============================] - 3s 16ms/step - loss: 0.2099 - accuracy: 0.9437 - val_loss: 0.1639 - val_accuracy: 0.9694
+Epoch 7/20
+180/180 [==============================] - 3s 15ms/step - loss: 0.1774 - accuracy: 0.9546 - val_loss: 0.1346 - val_accuracy: 0.9748
+Epoch 8/20
+180/180 [==============================] - 3s 15ms/step - loss: 0.1533 - accuracy: 0.9608 - val_loss: 0.1181 - val_accuracy: 0.9753
+Epoch 9/20
+180/180 [==============================] - 4s 22ms/step - loss: 0.1378 - accuracy: 0.9613 - val_loss: 0.1104 - val_accuracy: 0.9764
+Epoch 10/20
+180/180 [==============================] - 4s 20ms/step - loss: 0.1249 - accuracy: 0.9660 - val_loss: 0.0951 - val_accuracy: 0.9786
+Epoch 11/20
+180/180 [==============================] - 3s 15ms/step - loss: 0.1120 - accuracy: 0.9706 - val_loss: 0.0794 - val_accuracy: 0.9840
+Epoch 12/20
+180/180 [==============================] - 3s 16ms/step - loss: 0.1052 - accuracy: 0.9716 - val_loss: 0.0760 - val_accuracy: 0.9849
+Epoch 13/20
+180/180 [==============================] - 4s 22ms/step - loss: 0.0945 - accuracy: 0.9749 - val_loss: 0.0691 - val_accuracy: 0.9831
+Epoch 14/20
+180/180 [==============================] - 3s 15ms/step - loss: 0.0877 - accuracy: 0.9757 - val_loss: 0.0590 - val_accuracy: 0.9874
+Epoch 15/20
+180/180 [==============================] - 3s 15ms/step - loss: 0.0841 - accuracy: 0.9769 - val_loss: 0.0542 - val_accuracy: 0.9900
+Epoch 16/20
+180/180 [==============================] - 3s 15ms/step - loss: 0.0786 - accuracy: 0.9791 - val_loss: 0.0491 - val_accuracy: 0.9902
+Epoch 17/20
+180/180 [==============================] - 4s 19ms/step - loss: 0.0722 - accuracy: 0.9794 - val_loss: 0.0436 - val_accuracy: 0.9922
+Epoch 18/20
+180/180 [==============================] - 3s 16ms/step - loss: 0.0697 - accuracy: 0.9815 - val_loss: 0.0440 - val_accuracy: 0.9911
+Epoch 19/20
+180/180 [==============================] - 3s 14ms/step - loss: 0.0656 - accuracy: 0.9825 - val_loss: 0.0394 - val_accuracy: 0.9916
+Epoch 20/20
+180/180 [==============================] - 3s 15ms/step - loss: 0.0608 - accuracy: 0.9832 - val_loss: 0.0418 - val_accuracy: 0.9907</code></pre>
+</div>
+</div>
+<p>Again, let us look at our validation accuracy by calling <code>validation_plot</code>.</p>
+<div id="cell-45" class="cell" data-outputid="5520813e-5a8d-4d78-cd96-87eade765a80" data-execution_count="57">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>validation_plot(history)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Fakenews_files/figure-html/cell-24-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>As we can see, our validation accuracy is very good! With an accuracy of 99 percent, the classification of fake news is nearly perfect!</p>
+</section>
+<section id="model-evaluation-on-testing-data" class="level2">
+<h2 class="anchored" data-anchor-id="model-evaluation-on-testing-data">4. Model Evaluation on Testing Data</h2>
+<p>Now we test our best model on unseen data.</p>
+<div id="cell-49" class="cell" data-execution_count="59">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>test_url <span class="op">=</span> <span class="st">"https://github.com/PhilChodrow/PIC16b/blob/master/datasets/fake_news_test.csv?raw=true"</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>test_df <span class="op">=</span> pd.read_csv(test_url)</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>test <span class="op">=</span> make_dataset(test_df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="cell-50" class="cell" data-outputid="0d44f605-508e-403b-d343-2e3b2cc42d57" data-execution_count="60">
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>model3.evaluate(test)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>225/225 [==============================] - 3s 15ms/step - loss: 0.0510 - accuracy: 0.9858</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="60">
+<pre><code>[0.051006849855184555, 0.9857900142669678]</code></pre>
+</div>
+</div>
+<p>Our final accuracy is 98.58 percent which is very very good!</p>
+</section>
+</section>
+<section id="embedding-visualization" class="level1">
+<h1>5. Embedding Visualization</h1>
+<p>Finally, we visualize our embedding layer from oue best performing model. We use PCA to reduce the dimension down to two dimensions.</p>
+<div id="cell-54" class="cell" data-outputid="259eb366-ec3b-4f7c-b484-2eb69967ff88" data-execution_count="69">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>weights <span class="op">=</span> model3.get_layer(<span class="st">'embedding_3'</span>).get_weights()[<span class="dv">0</span>] <span class="co"># get the weights from the embedding layer</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>vocab <span class="op">=</span> title_vectorize_layer.get_vocabulary() <span class="co"># get the vocabulary from our data prep for later</span></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.decomposition <span class="im">import</span> PCA</span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>pca <span class="op">=</span> PCA(n_components<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>weights <span class="op">=</span> pca.fit_transform(weights)</span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a>embedding_df <span class="op">=</span> pd.DataFrame({</span>
+<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">'word'</span> : vocab,</span>
+<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">'x0'</span>   : weights[:,<span class="dv">0</span>],</span>
+<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">'x1'</span>   : weights[:,<span class="dv">1</span>]</span>
+<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> px.scatter(embedding_df,</span>
+<span id="cb39-15"><a href="#cb39-15" aria-hidden="true" tabindex="-1"></a>                 x <span class="op">=</span> <span class="st">"x0"</span>,</span>
+<span id="cb39-16"><a href="#cb39-16" aria-hidden="true" tabindex="-1"></a>                 y <span class="op">=</span> <span class="st">"x1"</span>,</span>
+<span id="cb39-17"><a href="#cb39-17" aria-hidden="true" tabindex="-1"></a>                 size <span class="op">=</span> [<span class="dv">2</span>]<span class="op">*</span><span class="bu">len</span>(embedding_df),</span>
+<span id="cb39-18"><a href="#cb39-18" aria-hidden="true" tabindex="-1"></a>                 hover_name <span class="op">=</span> <span class="st">"word"</span>)</span>
+<span id="cb39-19"><a href="#cb39-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-20"><a href="#cb39-20" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<iframe scrolling="no" width="100%" height="545px" src="iframe_figures/figure_69.html" frameborder="0" allowfullscreen=""></iframe>
+</div>
+</div>
+<div id="cell-55" class="cell" data-outputid="97885cb7-bd46-446e-b5c4-63b6228965fd" data-execution_count="66">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<iframe scrolling="no" width="100%" height="545px" src="iframe_figures/figure_66.html" frameborder="0" allowfullscreen=""></iframe>
+</div>
+</div>
+<p>The first figure is one from our text embeddings and the second figure is the one from our title embeddings. We can see that two notable words from our text embeddings which have a lot of weight is Kremlin and ambasaddor, and three words from our title embeddings is Trump, Hillary, and says.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      return note.innerHTML;
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
