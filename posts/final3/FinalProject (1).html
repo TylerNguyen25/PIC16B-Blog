@@ -561,10 +561,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="comment-similarity-function" class="level3">
 <h3 class="anchored" data-anchor-id="comment-similarity-function">Comment Similarity Function</h3>
 <p>Now let us create a function called <code>comment_similarity</code> which takes in our <code>national_parks.csv</code> file we just created via the <code>park_data</code> parameter, a <code>comment_index</code> parameter, and an <code>all_comments</code> parameter which is our word embedding vector representation of all comments in our csv file.</p>
-<div id="cell-33" class="cell">
+<div id="cell-33" class="cell" data-execution_count="12">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>all_docs <span class="op">=</span> [nlp(row) <span class="cf">for</span> row <span class="kw">in</span> national_parks[<span class="st">'comment_text'</span>]] <span class="co">#getting vector representation of all comments in our csv file</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="cell-34" class="cell" data-execution_count="17">
+<div id="cell-34" class="cell" data-execution_count="13">
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> comment_similarity(parks_data, comment_index, all_comments):</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    example_comment <span class="op">=</span> parks_data.loc[comment_index, <span class="st">'comment_text'</span>]</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    reference_comment <span class="op">=</span> nlp(example_comment) <span class="co">#vectorize our reference sentence</span></span>
@@ -581,10 +581,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span>(new_reviews)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Now let us show what our returned dataframe looks like</p>
-<div id="cell-36" class="cell" data-execution_count="18">
+<div id="cell-36" class="cell" data-execution_count="14">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>showcase <span class="op">=</span> comment_similarity(national_parks, <span class="dv">0</span>, all_docs)</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>showcase</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="18">
+<div class="cell-output cell-output-display" data-execution_count="14">
 <div>
 
 
@@ -630,17 +630,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <p>As we can see, we return a dataframe of the most similar review to the review with the index <code>999</code>. To see how similar this similar review is to our inputted review let us output both comments.</p>
 <p>First the original comment</p>
-<div id="cell-38" class="cell" data-execution_count="19">
+<div id="cell-38" class="cell" data-execution_count="15">
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>example_comment <span class="op">=</span> national_parks.loc[<span class="dv">0</span>, <span class="st">'comment_text'</span>]</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>example_comment</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="19">
+<div class="cell-output cell-output-display" data-execution_count="15">
 <pre><code>"I have hiked to the fire tower a few times. Its a great hike, and not too strenuous elevation gains.  If the NO rangers are up there ( in the summer) they used to allow you to go up the tower. We had to turn back on 3/20 because of hard pack solid ice. We had our Katoohla micro spikes on, and solid hiking poles, and knew they simply  wouldn't be enough if the ice was on the steeper sections.  We walked into the trailhead because the access road gate is still closed. After deciding to cross the lot and hike Beech Cliff Loop, which was much more clear of ice, and has excellent views of Echo Lake and the ocean out toward  Southwest Harbor. We returned to BH to hear of the recovery of a young couple from Rutland Massachusetts  who had fallen 100 feet to their death on Dorr Mountain Gorge Trail. The tragedy attributed to ice on the trails. Anyone not experienced with full crampon travel, and ice climbing training should never attempt to hike or climb on solid ice. The danger is severe.. "</code></pre>
 </div>
 </div>
 <p>Now the similar comment.</p>
-<div id="cell-40" class="cell" data-execution_count="20">
+<div id="cell-40" class="cell" data-execution_count="16">
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>showcase[<span class="st">'comment_text'</span>].iloc[<span class="dv">0</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="20">
+<div class="cell-output cell-output-display" data-execution_count="16">
 <pre><code>'We were staying with family in Sun City (near the Phoenix airport) and drove in our rental vehicle the approximate 3.5 hour drive to the south entrance of the Grand Canyon.  The park entrance was easy to find.  Parking this year was $35/vehicle.  I was skeptical going in, as several friends had this excursion on their "bucket list" while others simply raved.  I worried I would be disappointed.  However, the views absolutely spectacular!  We self-guided/toured.  We both experienced some vertigo and were careful to hang on to the railings provided, or sit on available benches as needed. Also bring water.  With the high elevation, it is easier to get winded, and water helps. We did have a hiker in front of us fall a few times from experiencing vertigo,and with assistance from others were able to help him get off the stairs and onto level ground to sit down.  He was embarrassed but grateful.  It could (and does) happen to anyone.  There were some areas that were roped off due to ice and snow and I was amazed how many people stupidly ignored the warnings and bypassed the barriers to get closer to the edge of the Canyon for selfies!   Check the weather in advance and dress appropriately.  The temperature was 30 degrees cooler in the Canyon than in the Phoenix area.  There were many families present and some pushing young ones in strollers.  On Feb 10, it was a chilly, windy, 40 degrees F.   There are lots of signs at various points educating you on the history of rocks, the Colorado river running through the Canyon, etc., and a small museum you can enter about 1.5 hours into the walk.  After our hike, we were exhausted and wind blown, and caught a shuttle back to the parking lot.  Kudos to those who can manage to walk the entire thing.  We didn\'t see everything the south side had to offer.  In our vehicle, we exited the park from the east side and for some 50+ miles, still saw the Grand Canyon from out the driver\'s side window. There were several spots along the way to stop and take more photos.  All in all, it was a physically and mentally stimulating journey that I highly recommend.'</code></pre>
 </div>
 </div>
@@ -649,7 +649,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="total-trail-simularity" class="level3">
 <h3 class="anchored" data-anchor-id="total-trail-simularity">Total Trail Simularity</h3>
 <p>Now let us create a function called <code>total_similarity</code> which takes in the same parameters as our last function except takes in the <code>trail</code> name instead of <code>comment_index</code>. We do so because we want to get all 10 comments per trail. Our <code>total_similarity</code> function calls <code>comment_similarity</code> to get the most similar comment per each individual comment of the 10 trails. As a result, we get 10 total similar trails returned to us.</p>
-<div id="cell-44" class="cell" data-execution_count="22">
+<div id="cell-44" class="cell" data-execution_count="17">
 <div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> total_similarity(trail, parks_data, all_comments):</span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    trail_subset <span class="op">=</span> parks_data[parks_data[<span class="st">'trail'</span>] <span class="op">==</span> trail].index</span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    total_df <span class="op">=</span> []</span>
@@ -658,10 +658,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> pd.concat(total_df)</span>
 <span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span>(df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="cell-45" class="cell" data-execution_count="23">
+<div id="cell-45" class="cell" data-execution_count="18">
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>output <span class="op">=</span> total_similarity(<span class="st">"Landscape Arch"</span>, national_parks, all_docs)</span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>output</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="23">
+<div class="cell-output cell-output-display" data-execution_count="18">
 <div>
 
 
@@ -845,13 +845,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="plotly-function" class="level3">
 <h3 class="anchored" data-anchor-id="plotly-function">Plotly Function</h3>
 <p>Now let us construct a geographical plot function called <code>plotting_parks</code> to get the location of these trails on a map. This is so that the user can better visualize where in the United States they may have to travel to. The function also analyzes other metrics from <code>national_parks.csv</code> such as visitors in 2018, type of activity, trail name, and overall TripAdvisor rating. This function calls <code>total_similarity</code> in order to get the dataframe with the most similar reviews!</p>
-<div id="cell-49" class="cell" data-execution_count="24">
+<div id="cell-49" class="cell" data-execution_count="19">
 <div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> plotly <span class="im">import</span> express <span class="im">as</span> px</span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> plotly.io <span class="im">as</span> pio</span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> inspect</span>
 <span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>pio.renderers.default<span class="op">=</span><span class="st">"iframe"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="cell-50" class="cell" data-execution_count="25">
+<div id="cell-50" class="cell" data-execution_count="20">
 <div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plotting_parks(trail, parks_data, all_comments, <span class="op">**</span>kwargs):</span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>    output <span class="op">=</span> total_similarity(trail, parks_data, all_comments)</span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    fig <span class="op">=</span> px.scatter_mapbox(output, lon <span class="op">=</span> <span class="st">"Longitude"</span>, lat <span class="op">=</span> <span class="st">"Latitude"</span>, color <span class="op">=</span> <span class="st">"overall_rating"</span>,</span>
@@ -863,15 +863,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>                        )</span>
 <span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> fig</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="cell-51" class="cell" data-execution_count="26">
+<div id="cell-51" class="cell" data-execution_count="21">
 <div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>color_map <span class="op">=</span> px.colors.diverging.RdGy_r <span class="co"># produce a color map</span></span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> plotting_parks(<span class="st">"Landscape Arch"</span>, national_parks, all_docs, mapbox_style<span class="op">=</span><span class="st">"carto-positron"</span>,</span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>                                   color_continuous_scale <span class="op">=</span> color_map)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="cell-52" class="cell" data-execution_count="49">
+<div id="cell-52" class="cell" data-execution_count="22">
 <div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<iframe scrolling="no" width="100%" height="620" src="iframe_figures/figure_49.html" frameborder="0" allowfullscreen=""></iframe>
+<iframe scrolling="no" width="100%" height="620" src="iframe_figures/figure_22.html" frameborder="0" allowfullscreen=""></iframe>
 </div>
 </div>
 <p>Great, as we can see, we get a geo plot of the most similar National Park trails in the United States to <code>Landscape Arch</code>!</p>
@@ -881,6 +881,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sql-database---zion" class="level1">
 <h1>SQL Database - Zion</h1>
 <p>There’s a lot of information that we scrape from TrailForks which has to be managed within a SQL datbase for easy access. For example, California has more than 16,000 trails, and for each trail, we collected 12 variables (see above), so that means that there’s more than 192,000 entries! We used <code>sqlite3</code> to easily manage a database, or rather, two: one is called <code>trails.db</code> and contains individual trails (specifically, those in California, though our original plan was to include the entire country), and one called <code>trails_new.db</code> (now that I think about it, I probably should’ve given it a different name) which contains park information, where each state has a different table.</p>
+<p>For reference here is how our scraper worked! <img src="FinalProject (1)_files/figure-html/cell-54-1-Capture.JPG" class="img-fluid" alt="Capture.JPG"></p>
 <section id="database_info.py" class="level2">
 <h2 class="anchored" data-anchor-id="database_info.py">database_info.py</h2>
 <p>Everything relevant to managing the datbase is stored in a different python file called <code>database_info.py</code>. Here I can show you the structure of both databases:</p>
