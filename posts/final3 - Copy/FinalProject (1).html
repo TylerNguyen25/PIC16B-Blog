@@ -878,155 +878,463 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 </section>
 </section>
+<section id="webscraping-trailforks---zion" class="level1">
+<h1>Webscraping TrailForks - Zion</h1>
+<p>Our original plan was to use a website called AllTrails which contains very comprehensive information about different hiking trails. Nonetheless, they beefed up their security measures several years ago to prevent people from scraping their website Because of this, we turned to a different site called TrailForks that, while still able to block <code>scrapy</code>, is unable to block Selenium.</p>
+<section id="how-do-you-get-started-with-selenium" class="level2">
+<h2 class="anchored" data-anchor-id="how-do-you-get-started-with-selenium">How do you get started with Selenium?</h2>
+<p>Selenium is able to evade certain anti-bot measures by actually using an instance of a web browser (called a webdriver) that runs on your system while scraping. In fact, once you get the scraper to work, you can actually watch it run in real time! Unfortunately, that makes it a lot slower than <code>scrapy</code>, for instance, because your computer actually has to manually open every page. I used a Google Chrome webdriver. Below is (part of) the head of the <code>scraper.py</code> function which scrapes data from individual trails from TrailForks.</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> selenium.webdriver.common.keys <span class="im">import</span> Keys</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> selenium.webdriver.common.by <span class="im">import</span> By</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> selenium.webdriver.chrome.service <span class="im">import</span> Service</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> selenium <span class="im">import</span> webdriver</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>chrome_options <span class="op">=</span> webdriver.ChromeOptions()</span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>options <span class="op">=</span> webdriver.ChromeOptions()</span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>options.add_experimental_option(</span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">"prefs"</span>, {</span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>            <span class="co"># block image loading</span></span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a>            <span class="st">"profile.managed_default_content_settings.images"</span>: <span class="dv">2</span>,</span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a>            <span class="st">"profile.managed_default_content_settings.javascript"</span>: <span class="dv">2</span></span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a>        }</span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a>driver <span class="op">=</span> webdriver.Chrome(</span>
+<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a>        service<span class="op">=</span>service,</span>
+<span id="cb25-19"><a href="#cb25-19" aria-hidden="true" tabindex="-1"></a>        options<span class="op">=</span>options</span>
+<span id="cb25-20"><a href="#cb25-20" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb25-21"><a href="#cb25-21" aria-hidden="true" tabindex="-1"></a>chrome_options.add_argument(<span class="st">'--no-sandbox'</span>)</span>
+<span id="cb25-22"><a href="#cb25-22" aria-hidden="true" tabindex="-1"></a>chrome_options.add_argument(<span class="st">'--headless'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Of note are the experimental options under <code>prefs</code> which block both images and javascript content from loading on a website. When I first made the scraper, I did not have these enabled, and a result, sometimes pages would take between 3 and 5 seconds to load (way too long!). Similarly, the <code>--headless</code> argument also make the pages load faster by disabling certain Google Chrome functionalities: <code>https://www.selenium.dev/blog/2023/headless-is-going-away/</code></p>
+</section>
+<section id="how-do-you-scrape-using-selenium" class="level2">
+<h2 class="anchored" data-anchor-id="how-do-you-scrape-using-selenium">How do you scrape using Selenium?</h2>
+<p>At its core, Selenium isn’t that different from <code>scrapy</code> in that you can have a scraper download HTML code which you can then filter through in Python as more familiar objects. Both <code>scraper.py</code> and <code>scraper_parks.py</code> (which filters through park-related information on TrailForks) have the same general principles: 1. Look at what state a user has inputted 2. Get links to all of the park/trail pages for that state 3. Get corresponding information from each page, using helper functions if need be 4. Add data to SQL database (see next section for that!)</p>
+</section>
+</section>
+<section id="scraper.py" class="level1">
+<h1><code>scraper.py</code></h1>
+<p>As an example, let’s take a look at the function <code>state_scraper</code> in <code>scraper.py</code>. This is the outermost scraping function and takes in a state that the user inputs. However, for our project, we just used it to grab trails from California, since it would’ve taken a very long time to do this for the entire country, given that TrailForks has nearly 300,000 trails registered in the US alone.</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> state_scraper(state_name):</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="co">    This is the primary scraping function used inside of `main`.</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="co">    </span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="co">    Inputs:</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a><span class="co">    ``href_list``: A list of each state's current page's trail urls, compiled by `main`</span></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a><span class="co">    ``state_name``: The name of the state in question.</span></span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a><span class="co">    </span></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a><span class="co">    The function iterates through each url in ``href_list`` and using selenium's Chrome</span></span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a><span class="co">    driver, it gets the `url` and calls the 3 individual scraping function: `scrape_basic_stats`,</span></span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a><span class="co">    `scrape_tables` (twice--once for trail information and one for trail statistics), and</span></span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a><span class="co">    `get_names_coords`. Once all of the information is gathered into dictionaries, they are</span></span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a><span class="co">    combined and added into `trails.db`.</span></span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a><span class="co">    </span></span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a>    start_url <span class="op">=</span> <span class="ss">f"https://www.trailforks.com/region/</span><span class="sc">{</span>state_name<span class="sc">}</span><span class="ss">/trails//?activitytype=6&amp;region=3106"</span></span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a>    url_list <span class="op">=</span> [start_url]</span>
+<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb26-19"><a href="#cb26-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> page_num <span class="kw">in</span> <span class="bu">range</span>(state_page_dict[state_name]):</span>
+<span id="cb26-20"><a href="#cb26-20" aria-hidden="true" tabindex="-1"></a>        url_list.append(start_url <span class="op">+</span> <span class="ss">f"&amp;page=</span><span class="sc">{</span>page_num<span class="op">+</span><span class="dv">2</span><span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb26-21"><a href="#cb26-21" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb26-22"><a href="#cb26-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> page_num <span class="kw">in</span> <span class="bu">range</span>(state_page_dict[state_name]):</span>
+<span id="cb26-23"><a href="#cb26-23" aria-hidden="true" tabindex="-1"></a>        href_list <span class="op">=</span> []</span>
+<span id="cb26-24"><a href="#cb26-24" aria-hidden="true" tabindex="-1"></a>        driver.get(url_list[page_num])</span>
+<span id="cb26-25"><a href="#cb26-25" aria-hidden="true" tabindex="-1"></a>        green_links <span class="op">=</span> driver.find_elements(<span class="st">"xpath"</span>,<span class="st">"//tr//a[contains(@class, 'green')]"</span>)</span>
+<span id="cb26-26"><a href="#cb26-26" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb26-27"><a href="#cb26-27" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> green <span class="kw">in</span> green_links:</span>
+<span id="cb26-28"><a href="#cb26-28" aria-hidden="true" tabindex="-1"></a>            href <span class="op">=</span> green.get_attribute(<span class="st">"href"</span>) <span class="co">#Grab URLs--otherwise this doesn't work</span></span>
+<span id="cb26-29"><a href="#cb26-29" aria-hidden="true" tabindex="-1"></a>            href_list.append(href)</span>
+<span id="cb26-30"><a href="#cb26-30" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb26-31"><a href="#cb26-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-32"><a href="#cb26-32" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> url <span class="kw">in</span> href_list:</span>
+<span id="cb26-33"><a href="#cb26-33" aria-hidden="true" tabindex="-1"></a>            trail_keywords <span class="op">=</span> [<span class="st">"Activities"</span>, <span class="st">"Riding Area"</span>, <span class="st">"Difficulty Rating"</span>, <span class="st">"Local Popularity"</span>]</span>
+<span id="cb26-34"><a href="#cb26-34" aria-hidden="true" tabindex="-1"></a>            stats_keywords <span class="op">=</span> [<span class="st">"Altitude start"</span>, <span class="st">"Altitude end"</span>, <span class="st">"Grade"</span>]</span>
+<span id="cb26-35"><a href="#cb26-35" aria-hidden="true" tabindex="-1"></a>            basic_vars_dict <span class="op">=</span> {<span class="st">"Distance"</span>: [<span class="st">"NA"</span>], <span class="st">"Avg time"</span>: [<span class="st">"NA"</span>], <span class="st">"Climb"</span>: [<span class="st">"NA"</span>], <span class="st">"Descent"</span>: [<span class="st">"NA"</span>]}</span>
+<span id="cb26-36"><a href="#cb26-36" aria-hidden="true" tabindex="-1"></a>            trail_details_vars <span class="op">=</span> {<span class="st">"Activities"</span>: [<span class="st">"NA"</span>], <span class="st">"Riding Area"</span>: [<span class="st">"NA"</span>], <span class="st">"Difficulty Rating"</span>: [<span class="st">"NA"</span>], <span class="st">"Local Popularity"</span>: [<span class="st">"NA"</span>]}</span>
+<span id="cb26-37"><a href="#cb26-37" aria-hidden="true" tabindex="-1"></a>            trail_stats_vars <span class="op">=</span> { <span class="st">"Altitude start"</span>: [<span class="st">"NA"</span>], <span class="st">"Altitude end"</span>: [<span class="st">"NA"</span>], <span class="st">"Grade"</span>: [<span class="st">"NA"</span>]}</span>
+<span id="cb26-38"><a href="#cb26-38" aria-hidden="true" tabindex="-1"></a>            name_coord_dict <span class="op">=</span> {<span class="st">'Name'</span>: [<span class="st">"NA"</span>],<span class="st">'Coords'</span>: [<span class="st">"NA"</span>]}</span>
+<span id="cb26-39"><a href="#cb26-39" aria-hidden="true" tabindex="-1"></a>            <span class="bu">print</span>(url)</span>
+<span id="cb26-40"><a href="#cb26-40" aria-hidden="true" tabindex="-1"></a>            driver.get(url)</span>
+<span id="cb26-41"><a href="#cb26-41" aria-hidden="true" tabindex="-1"></a>            basic_vars <span class="op">=</span> scrape_basic_stats(basic_vars_dict)</span>
+<span id="cb26-42"><a href="#cb26-42" aria-hidden="true" tabindex="-1"></a>            trail_stats <span class="op">=</span> scrape_tables(stats_keywords, <span class="st">'trailstats_display'</span>, trail_stats_vars)</span>
+<span id="cb26-43"><a href="#cb26-43" aria-hidden="true" tabindex="-1"></a>            trail_details <span class="op">=</span> scrape_tables(trail_keywords, <span class="st">'traildetails_display'</span>, trail_details_vars)</span>
+<span id="cb26-44"><a href="#cb26-44" aria-hidden="true" tabindex="-1"></a>            names_coords <span class="op">=</span> get_names_coords(name_coord_dict)</span>
+<span id="cb26-45"><a href="#cb26-45" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb26-46"><a href="#cb26-46" aria-hidden="true" tabindex="-1"></a>            database_info.add_trails(pd.DataFrame({<span class="op">**</span>names_coords,<span class="op">**</span>basic_vars, <span class="op">**</span>trail_details, <span class="op">**</span>trail_stats}),state_name)</span>
+<span id="cb26-47"><a href="#cb26-47" aria-hidden="true" tabindex="-1"></a>            </span>
+<span id="cb26-48"><a href="#cb26-48" aria-hidden="true" tabindex="-1"></a>    driver.quit()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>There’s a lot going on here! I’ll attach screenshots from TrailForks here to make it easier to follow along. The first thing that we do is establish a starting url which we get from TrailForks thanks to an f-string that contains the name of the state that we want. We then append that url to a url list. This list is important because we couldn’t actually get this to work without having it, since going <code>back</code> and <code>forward</code> is a bit harder in Selenium than it is in <code>scrapy</code>.</p>
+<p>Then, we store the urls for all of the trail list pages that correspond to a given state, which on the website, looks like this:</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://drive.google.com/file/d/1evpSQDVuWDG4TCjbeas_uMTpgqe-B_Zp/view?usp=sharing.png" class="img-fluid figure-img"></p>
+<figcaption>zion_image1</figcaption>
+</figure>
+</div>
+<p>The numbers come from a dictionary saved in <code>database_info.py</code>. Before making <code>scraper.py</code>, I scraped the page numbers.</p>
+<p>Then, on each page, we grab the urls to individual trails. Note that Selenium uses a class called <code>driver</code> to interface with the page that it’s scraping, and the key methods here are called <code>get</code> (which just navigates to the page) and <code>find_elements</code>, which has two arguments. The first argument specifies <em>how</em> the scraper should interpret the second argument, which is some sort of instruction. For example, when we grab all of the links on the page to the trails, we use</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a> driver.find_elements(<span class="st">"xpath"</span>,<span class="st">"//tr//a[contains(@class, 'green')]"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>where the second input is an xpath instruction that <code>find_elements</code> can read thanks to the fact that the first argument is simply a string that says <code>xpath</code>. There’s a lot of documentation for <code>xpath</code> available online, which I started to investigate for the movie database homework assignment. This website came in handy: https://www.w3schools.com/xml/xpath_syntax.asp</p>
+<p>In the above example, we grab all links (<code>a</code>) contained in all table rows (<code>tr</code>) given that they are of class <code>green</code> (not sure why they’re calle that, but links to trails are of that class). Once we actually load it into python, though, we have to call</p>
+<div class="sourceCode" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> green <span class="kw">in</span> green_links:</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>           href <span class="op">=</span> green.get_attribute(<span class="st">"href"</span>) <span class="co">#Grab URLs--otherwise this doesn't work</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>           href_list.append(href)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>in a <code>for</code> loop to specifically take out the link portion of each <code>a</code> and then add it to the URL list.</p>
+<p>## Individual Scraping Functions</p>
+<p>Now we can get to the fun part. We essentially give a set of instructions to go to each trail’s page armed with a set of both lists containing keywords as well as dictionaries. The idea here is to search for specific variables stored in each trail and then update the value inside of the corresponding dictionary. As you can see, we split this task into four parts:</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>basic_vars <span class="op">=</span> scrape_basic_stats(basic_vars_dict)</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>           trail_stats <span class="op">=</span> scrape_tables(stats_keywords, <span class="st">'trailstats_display'</span>, trail_stats_vars)</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>           trail_details <span class="op">=</span> scrape_tables(trail_keywords, <span class="st">'traildetails_display'</span>, trail_details_vars)</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>           names_coords <span class="op">=</span> get_names_coords(name_coord_dict)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Let’s go over each one briefly.</p>
+<p>###<code>scraper_basic_stats</code></p>
+<p><code>scraper_basic_stats</code> takes the <code>basic_vars_dict</code> as an input:</p>
+<div class="sourceCode" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> scrape_basic_stats(basic_vars_dict):</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="co">    This function should be called within the `state_scraper` function.</span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a><span class="co">    </span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a><span class="co">    Inputs:</span></span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a><span class="co">    ``basic_vars_dict``: a dictionary with the relevant variable names as keys and, by default,</span></span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a><span class="co">    `NA` as values.</span></span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a><span class="co">    </span></span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a><span class="co">    On a given trail's website, it will find a `div` element of id `basicTrailStats`.</span></span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a><span class="co">    This is a table containing information about the trail's length, average time to</span></span>
+<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a><span class="co">    completion, ascent, and descent, if those variables are available.</span></span>
+<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a><span class="co">    The function looks for `div`s of ID `padded10` which contain `col-3` class `div`s.</span></span>
+<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a><span class="co">    The name of each variable is the `text` of the `small.grey` class within each `col-3`.</span></span>
+<span id="cb30-15"><a href="#cb30-15" aria-hidden="true" tabindex="-1"></a><span class="co">    The variable's value is stored in the `text` of `div` `large` or `large hovertip`</span></span>
+<span id="cb30-16"><a href="#cb30-16" aria-hidden="true" tabindex="-1"></a><span class="co">    </span></span>
+<span id="cb30-17"><a href="#cb30-17" aria-hidden="true" tabindex="-1"></a><span class="co">    The function uses conditional statements as not all of the variables are available.</span></span>
+<span id="cb30-18"><a href="#cb30-18" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb30-19"><a href="#cb30-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>:</span>
+<span id="cb30-20"><a href="#cb30-20" aria-hidden="true" tabindex="-1"></a>        basic_stats_div <span class="op">=</span> driver.find_element(By.ID, <span class="st">"basicTrailStats"</span>)</span>
+<span id="cb30-21"><a href="#cb30-21" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb30-22"><a href="#cb30-22" aria-hidden="true" tabindex="-1"></a>        padded10_divs <span class="op">=</span> basic_stats_div.find_elements(By.CLASS_NAME, <span class="st">"padded10"</span>)</span>
+<span id="cb30-23"><a href="#cb30-23" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb30-24"><a href="#cb30-24" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> padded10_div <span class="kw">in</span> padded10_divs:</span>
+<span id="cb30-25"><a href="#cb30-25" aria-hidden="true" tabindex="-1"></a>            col_3_divs <span class="op">=</span> padded10_div.find_elements(By.CLASS_NAME, <span class="st">"col-3"</span>)</span>
+<span id="cb30-26"><a href="#cb30-26" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> col_3_div <span class="kw">in</span> col_3_divs:</span>
+<span id="cb30-27"><a href="#cb30-27" aria-hidden="true" tabindex="-1"></a>                small_grey_div <span class="op">=</span> col_3_div.find_element(By.CLASS_NAME, <span class="st">"small.grey"</span>)</span>
+<span id="cb30-28"><a href="#cb30-28" aria-hidden="true" tabindex="-1"></a>                variable_name <span class="op">=</span> small_grey_div.text</span>
+<span id="cb30-29"><a href="#cb30-29" aria-hidden="true" tabindex="-1"></a>                large_div <span class="op">=</span> col_3_div.find_element(By.CSS_SELECTOR, <span class="st">".large, .large.hovertip"</span>)</span>
+<span id="cb30-30"><a href="#cb30-30" aria-hidden="true" tabindex="-1"></a>                variable_value <span class="op">=</span> large_div.text</span>
+<span id="cb30-31"><a href="#cb30-31" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> variable_name <span class="kw">in</span> basic_vars_dict:</span>
+<span id="cb30-32"><a href="#cb30-32" aria-hidden="true" tabindex="-1"></a>                    basic_vars_dict[variable_name] <span class="op">=</span> variable_value</span>
+<span id="cb30-33"><a href="#cb30-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span>:</span>
+<span id="cb30-34"><a href="#cb30-34" aria-hidden="true" tabindex="-1"></a>        <span class="cf">pass</span></span>
+<span id="cb30-35"><a href="#cb30-35" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> basic_vars_dict</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>This function essentialy looks for the light gray box at the top of each trail’s page which has some basic information like distance, climb, descent, and average completion time. This box has an ID of <code>basicTrailStats</code> (see how we use <code>find_element</code> with <code>By.ID</code>?) and contains a <code>div</code> called <code>padded10</code>, which in turn contains <code>divs</code> of <code>col-3</code>. These essentially work like dictionaries. Each one has a <code>div</code> of class <code>large</code> and <code>small grey</code> (note that we use periods here) whose text contains the information we want.</p>
+<p>We have to make sure that each variable that we want is in our dictionary and that furthermore, it’s present on the trail page. Some trails have sparse or non-existent information for certain variables, and as a result, the specified variables simply don’t exist. This is also why this (and all other) helper function has its body in a <code>try/except</code> format, since it’s possible for <code>basicTrailStats</code> to not exist at all (only on rare occasions).</p>
+<p>###<code>scrape_tables</code></p>
+<div class="sourceCode" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> scrape_tables(var_list, element_id, var_dict):</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a><span class="co">    This function is used within `state_scraper` to access `ul`s with variable information.</span></span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a><span class="co">    </span></span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a><span class="co">    Inputs:</span></span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a><span class="co">    ``var_list``: a list ofthe relevant variable names.</span></span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a><span class="co">    ``element_id``: the `id` of the `ul` in question--there are two which need to be scraped.</span></span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a><span class="co">    ``var_dict``: a dictionary with the relevant variable names as keys and, by default,</span></span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a><span class="co">    `NA` as values.</span></span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a><span class="co">    </span></span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a><span class="co">    Each `ul` contains `li`s formatted like a dictionary with a `div` of class `term`,</span></span>
+<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a><span class="co">    which stores variable names, and a `div` of class `definition` which stores variable</span></span>
+<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a><span class="co">    values. Both `div`s store the key information in their `text`. Since not all variables</span></span>
+<span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a><span class="co">    are needed, we check if they are in ``var_list`` before assigning them to</span></span>
+<span id="cb31-16"><a href="#cb31-16" aria-hidden="true" tabindex="-1"></a><span class="co">    ``var_dict``'s values.</span></span>
+<span id="cb31-17"><a href="#cb31-17" aria-hidden="true" tabindex="-1"></a><span class="co">    </span></span>
+<span id="cb31-18"><a href="#cb31-18" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb31-19"><a href="#cb31-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>:</span>
+<span id="cb31-20"><a href="#cb31-20" aria-hidden="true" tabindex="-1"></a>        li_elements <span class="op">=</span> driver.find_elements(<span class="st">"xpath"</span>, <span class="ss">f"//ul[contains(@id, '</span><span class="sc">{</span>element_id<span class="sc">}</span><span class="ss">')]//li"</span>)</span>
+<span id="cb31-21"><a href="#cb31-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> li_element <span class="kw">in</span> li_elements:</span>
+<span id="cb31-22"><a href="#cb31-22" aria-hidden="true" tabindex="-1"></a>            term_div <span class="op">=</span> li_element.find_elements(By.CLASS_NAME, <span class="st">"term"</span>)</span>
+<span id="cb31-23"><a href="#cb31-23" aria-hidden="true" tabindex="-1"></a>            definition_div <span class="op">=</span> li_element.find_elements(By.CLASS_NAME, <span class="st">"definition"</span>)</span>
+<span id="cb31-24"><a href="#cb31-24" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> idx, terms <span class="kw">in</span> <span class="bu">enumerate</span>(term_div):</span>
+<span id="cb31-25"><a href="#cb31-25" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> terms.text <span class="kw">in</span> var_list:</span>
+<span id="cb31-26"><a href="#cb31-26" aria-hidden="true" tabindex="-1"></a>                    var_dict[terms.text] <span class="op">=</span> [definition_div[idx].text]</span>
+<span id="cb31-27"><a href="#cb31-27" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb31-28"><a href="#cb31-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span>:</span>
+<span id="cb31-29"><a href="#cb31-29" aria-hidden="true" tabindex="-1"></a>        <span class="cf">pass</span></span>
+<span id="cb31-30"><a href="#cb31-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> var_dict</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>This function is called twice in the body of the scraper because there are two similarly structured tables (one with general trail information and one with more detailed statistics) that we want to grab certain variables from. The tables are unordered lists (<code>ul</code>s) which contain list elements (<code>li</code>s) that we can conveniently loop through by using the <code>find_elements</code> function which automatically converts it into a python iterable (similarly to <code>scrapy</code>). The lists are once again sorted like dictionaries, in fat, they contain classes called <code>terms</code> and <code>definitions</code>, which we then parse through one by one and use to update <em>our</em> dictionary, which is then returned.</p>
+<p>### <code>get_names_coords()</code></p>
+<div class="sourceCode" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> get_names_coords(name_coord_dict):</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="co">"""</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a><span class="co">  This function is used within `state_scraper` to access each trail's name and coordinates.</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a><span class="co">  </span></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a><span class="co">  Inputs:</span></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a><span class="co">  ``name_coord_dict``: a dictionary with keys `Name` and `Coords`. By default, the values are `NA`</span></span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a><span class="co">  </span></span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a><span class="co">  The function grabs the trail's name from a `span` of class `translate` from the top of the page.</span></span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a><span class="co">  It also grabs the coordinates from a `span` of class `grey2` within a `div` of class</span></span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a><span class="co">  `margin-bottom-15`. The coordinates are stored in the `span`'s `text`.</span></span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a><span class="co">  """</span></span>
+<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a>  <span class="cf">try</span>:</span>
+<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a>      name_raw <span class="op">=</span> driver.find_element(<span class="st">"xpath"</span>, <span class="st">"//span[contains(@class, 'translate')][1]"</span>)</span>
+<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a>      name_coord_dict[<span class="st">'Name'</span>] <span class="op">=</span> [name_raw.text]</span>
+<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a>  <span class="cf">except</span>:</span>
+<span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a>      name_coord_dict[<span class="st">'Name'</span>] <span class="op">=</span> <span class="st">"NA"</span></span>
+<span id="cb32-17"><a href="#cb32-17" aria-hidden="true" tabindex="-1"></a>  <span class="cf">try</span>:</span>
+<span id="cb32-18"><a href="#cb32-18" aria-hidden="true" tabindex="-1"></a>      coord_raw <span class="op">=</span> driver.find_element(<span class="st">"xpath"</span>, <span class="st">"//div[contains(@class, 'margin-bottom-15 grey')]/span[contains(@class, 'grey2')][2]"</span>) <span class="co">#Get coords</span></span>
+<span id="cb32-19"><a href="#cb32-19" aria-hidden="true" tabindex="-1"></a>      name_coord_dict[<span class="st">'Coords'</span>] <span class="op">=</span> coord_raw.text</span>
+<span id="cb32-20"><a href="#cb32-20" aria-hidden="true" tabindex="-1"></a>  <span class="cf">except</span>:</span>
+<span id="cb32-21"><a href="#cb32-21" aria-hidden="true" tabindex="-1"></a>      name_coord_dict[<span class="st">'Coords'</span>] <span class="op">=</span> <span class="st">"NA"</span></span>
+<span id="cb32-22"><a href="#cb32-22" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb32-23"><a href="#cb32-23" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> name_coord_dict</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>This is a bit more of a miscellaneous function, since it’s not dedicated to any one purpose. All it does is store the name of the trail as well as its coordinates. These are stored as two different classes of <code>div</code>s found on different parts of the page. Then, we just grab their <code>text</code>. Simple as that!</p>
+<p>Once we grab all of that information, we add it to our SQL datbase:</p>
+<div class="sourceCode" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>database_info.add_trails(pd.DataFrame({<span class="op">**</span>names_coords,<span class="op">**</span>basic_vars, <span class="op">**</span>trail_details, <span class="op">**</span>trail_stats}),state_name)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>which I’ll talk about in the next section.</p>
+</section>
+<section id="scraper_parks.py" class="level1">
+<h1>scraper_parks.py</h1>
+<p>This file also contains a function called <code>state_scraper</code> which once again takes a state’s name as its input, but this time, it’s focused on collecting information about <em>parks</em> rather than trails (on TrailForks, there are many trails within one park). I was able to run this to get some numerical data about parks throughout the US (including national parks) which was then integrated into the website and recommender system.</p>
+<p>This time, I don’t use helper functions (rather, I just keep it in the <code>state_scraper</code>’s body), so we’ll go through it bit by bit. Firstly, it’s worth going over what we actually want from each park’s page:</p>
+<ol type="1">
+<li>Each park’s name and location</li>
+<li>The number of trails in each park, how long the trails are, and the popularity ranking.</li>
+<li>How many trails there are of each difficulty</li>
+</ol>
+<p>##Set-up</p>
+<p>The settings for Selenium are the same as in the last case. The pre-scraping part is almost identical as well:</p>
+<div class="sourceCode" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>start_url <span class="op">=</span> <span class="ss">f"https://www.trailforks.com/region/</span><span class="sc">{</span>state_name<span class="sc">}</span><span class="ss">/ridingareas/?activitytype=6"</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>    url_list <span class="op">=</span> [start_url]</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> page_num <span class="kw">in</span> <span class="bu">range</span>(database_info.state_dictionary[state_name]):</span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>        url_list.append(start_url <span class="op">+</span> <span class="ss">f"&amp;page=</span><span class="sc">{</span>page_num<span class="op">+</span><span class="dv">2</span><span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> page_num <span class="kw">in</span> <span class="bu">range</span>(state_page_dict[state_name]):</span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>        href_list <span class="op">=</span> []</span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a>        driver.get(url_list[page_num])</span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a>        green_links <span class="op">=</span> driver.find_elements(<span class="st">"xpath"</span>,<span class="st">"//tr//a[contains(@class, 'green')]"</span>)</span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> green <span class="kw">in</span> green_links:</span>
+<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a>            href <span class="op">=</span> green.get_attribute(<span class="st">"href"</span>) <span class="co">#Grab URLs--otherwise this doesn't work</span></span>
+<span id="cb34-14"><a href="#cb34-14" aria-hidden="true" tabindex="-1"></a>            href_list.append(href<span class="op">+</span><span class="st">"/?activitytype=6"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Once again, I pre-scraped the number of pages required per state, though because there are fewer parks than trails, it wasn’t as big of a load on my computer.</p>
+<section id="names-and-coordinates" class="level2">
+<h2 class="anchored" data-anchor-id="names-and-coordinates">Names and coordinates</h2>
+<p>Here’s the first part of where we actually scrape:</p>
+<div class="sourceCode" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a> <span class="cf">for</span> url <span class="kw">in</span> href_list:</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>            no_name_found <span class="op">=</span> <span class="va">False</span></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>            info_dict <span class="op">=</span> {<span class="st">"Name"</span>:[<span class="st">"NA"</span>], <span class="st">"Location"</span>:[<span class="st">"NA"</span>], <span class="st">"Coords"</span>:[<span class="st">"NA"</span>]}</span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>            stats_dict <span class="op">=</span>  {<span class="st">"Trails (view details)"</span>:[<span class="st">"NA"</span>],<span class="st">"Total Distance"</span>:[<span class="st">"NA"</span>], <span class="st">"State Ranking"</span>:[<span class="st">"NA"</span>],}</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>            trail_difficulty_count <span class="op">=</span> {<span class="st">"Access Road/Trail"</span>:<span class="dv">0</span>,<span class="st">"White"</span>:<span class="dv">0</span>,<span class="st">"Green"</span>:<span class="dv">0</span>,<span class="st">"Blue"</span>:<span class="dv">0</span>,<span class="st">"Black"</span>:<span class="dv">0</span>,<span class="st">"Double Black Diamond"</span>:<span class="dv">0</span>, <span class="st">"Proline"</span>:<span class="dv">0</span>}</span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>            <span class="bu">print</span>(url)</span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>            driver.get(url)</span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>            area_name_raw <span class="op">=</span> driver.find_element(<span class="st">"xpath"</span>, <span class="st">"//span[contains(@class, 'translate')][1]"</span>)</span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>            info_dict[<span class="st">"Name"</span>] <span class="op">=</span> area_name_raw.text</span>
+<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a>            <span class="cf">try</span>:</span>
+<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a>                city_name_raw <span class="op">=</span> driver.find_element(By.CLASS_NAME, <span class="st">"small.grey2.mobile_hide"</span>)</span>
+<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a>                info_dict[<span class="st">"Location"</span>] <span class="op">=</span> city_name_raw.text</span>
+<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a>            <span class="cf">except</span>:</span>
+<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a>                no_name_found <span class="op">=</span> <span class="va">True</span></span>
+<span id="cb35-16"><a href="#cb35-16" aria-hidden="true" tabindex="-1"></a>                </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>We create our three dictionaries that we want for each URL. The <code>print(url)</code> function is present as a debugging tool since, unfortunately, this scraper crashed multiple times due to unfixed bugs (which I eventually patched out, mostly due to elements not being present).</p>
+<p>We get the name of the trail by finding a <code>span</code> with class <code>translate</code> (not sure why it’s stored like that, it’s actually within an <code>h1</code> within a <code>ul</code> called <code>page_title_container</code>). Then, we try to look for the name of the city that it’s in by grabbing a small piece of text that’s next to the park’s name. Sometimes, this isn’t present, which is why we have a bool called <code>no_name_found</code> in case it’s not. There’s a way around this, though, which we’ll show later…</p>
+<p>###Ranking, Distance, and Trail numbers:</p>
+<div class="sourceCode" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>    stats_items <span class="op">=</span> [<span class="st">"State Ranking"</span>, <span class="st">"Total Distance"</span>, <span class="st">"Trails (view details)"</span>]</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>            dict_category <span class="op">=</span> driver.find_elements(<span class="st">"xpath"</span>, <span class="st">"//dl//dt"</span>)</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>            dict_information <span class="op">=</span> driver.find_elements(<span class="st">"xpath"</span>, <span class="st">"//dl//dd"</span>)</span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>           </span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> idx, terms <span class="kw">in</span> <span class="bu">enumerate</span>(dict_category):</span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> terms.text <span class="kw">in</span> stats_items:</span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>                    stats_dict[terms.text] <span class="op">=</span> [dict_information[idx].text]</span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>                    </span>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a>            <span class="cf">try</span>:</span>
+<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a>                difficulty_ul <span class="op">=</span> driver.find_element(By.CLASS_NAME, <span class="st">'stats.flex.nostyle.inline.clearfix'</span>)</span>
+<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a>                <span class="cf">for</span> li <span class="kw">in</span> difficulty_ul.find_elements(By.TAG_NAME, <span class="st">'li'</span>):</span>
+<span id="cb36-13"><a href="#cb36-13" aria-hidden="true" tabindex="-1"></a>                    difficulty_span <span class="op">=</span> li.find_element(By.XPATH, <span class="st">'.//span[contains(@class, "stat-label clickable")]/span'</span>)</span>
+<span id="cb36-14"><a href="#cb36-14" aria-hidden="true" tabindex="-1"></a>                    difficulty_name <span class="op">=</span> difficulty_span.get_attribute(<span class="st">'title'</span>)</span>
+<span id="cb36-15"><a href="#cb36-15" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">if</span> difficulty_name <span class="kw">in</span> trail_difficulty_count.keys():</span>
+<span id="cb36-16"><a href="#cb36-16" aria-hidden="true" tabindex="-1"></a>                        num_trails_span <span class="op">=</span> li.find_element(By.CLASS_NAME, <span class="st">'stat-num'</span>)</span>
+<span id="cb36-17"><a href="#cb36-17" aria-hidden="true" tabindex="-1"></a>                        num_trails <span class="op">=</span> <span class="bu">int</span>(num_trails_span.text)</span>
+<span id="cb36-18"><a href="#cb36-18" aria-hidden="true" tabindex="-1"></a>                        trail_difficulty_count[difficulty_name] <span class="op">=</span> num_trails</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>The code here is somewhat dense thanks to the fact that all of this information is stored in a dictionary-like object called a <code>dl</code> which, in turn, has something like a key in a <code>dl</code> and something like a value in a <code>dd</code>. Essentially, we update the ranking and trail distances by inspecting these.</p>
+<p>It’s a little bit harder to get the number of trails per difficulty. Basically, there’s an unordered list with a long class name (<code>'stats.flex.nostyle.inline.clearfix'</code> that sorts the number of trails by difficulty. Each <code>li</code> has the number of trails stored within it, but it also has a graphic that represents the difficulty (it’s a small picture), and it’s the graphic that actually hides the name of the difficulty, which is why we have to extract <code>difficulty_name</code> from a <code>span</code> of class <code>stat-label clickable</code>. Then, we simply grab the actual text that displays how many trails of a given difficulty there are, convert it to an integer, and then add it to our dictionary.</p>
+<section id="coordinates" class="level3">
+<h3 class="anchored" data-anchor-id="coordinates">Coordinates</h3>
+<p>One of the unfortunate parts of the parks list is that the coordinates of each park are not present! To get around this, we tell the scraper to go to the first trail in each park and grab its coordinates (remember <code>scraper.py</code>?) and then store it.</p>
+<div class="sourceCode" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>  <span class="cf">try</span>:</span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>                green_link <span class="op">=</span> driver.find_element(<span class="st">"xpath"</span>,<span class="st">"//tr//a[contains(@class, 'green')]"</span>)</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>                park_link <span class="op">=</span> green_link.get_attribute(<span class="st">"href"</span>)</span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>                driver.get(park_link)</span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>            <span class="cf">except</span>:</span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>                <span class="cf">pass</span></span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>                </span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>            <span class="cf">try</span>:</span>
+<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a>                coord_raw <span class="op">=</span> driver.find_element(<span class="st">"xpath"</span>, <span class="st">"//div[contains(@class, 'margin-bottom-15 grey')]/span[contains(@class, 'grey2')][2]"</span>) <span class="co">#Get coords</span></span>
+<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a>                info_dict[<span class="st">'Coords'</span>] <span class="op">=</span> [coord_raw.text]</span>
+<span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> no_name_found:</span>
+<span id="cb37-12"><a href="#cb37-12" aria-hidden="true" tabindex="-1"></a>                    city_name_raw <span class="op">=</span> driver.find_element(By.CLASS_NAME, <span class="st">"weather_date bold green"</span>)</span>
+<span id="cb37-13"><a href="#cb37-13" aria-hidden="true" tabindex="-1"></a>                    info_dict[<span class="st">"Location"</span>] <span class="op">=</span> city_name_raw.text</span>
+<span id="cb37-14"><a href="#cb37-14" aria-hidden="true" tabindex="-1"></a>            <span class="cf">except</span>:</span>
+<span id="cb37-15"><a href="#cb37-15" aria-hidden="true" tabindex="-1"></a>                info_dict[<span class="st">'Coords'</span>] <span class="op">=</span> [<span class="st">"NA"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>It</p>
+<p>For reference here is how our scraper worked! ’s here where we also resolve the issue of when we can’t find a city’s name. Basically, on each trail’s page, there’s a short infobox containing weather information for the nearest city which is <em>guaranteed</em> to appear, so we can get an approximate location name precisely by grabbing the city name from this box.</p>
+<p>Once we’re done with that, it’s off to the database again!</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="FinalProject (1)_files/figure-html/cell-55-1-Capture.JPG" class="img-fluid figure-img"></p>
+<figcaption>Capture.JPG</figcaption>
+</figure>
+</div>
+</section>
+</section>
+</section>
 <section id="sql-database---zion" class="level1">
 <h1>SQL Database - Zion</h1>
 <p>There’s a lot of information that we scrape from TrailForks which has to be managed within a SQL datbase for easy access. For example, California has more than 16,000 trails, and for each trail, we collected 12 variables (see above), so that means that there’s more than 192,000 entries! We used <code>sqlite3</code> to easily manage a database, or rather, two: one is called <code>trails.db</code> and contains individual trails (specifically, those in California, though our original plan was to include the entire country), and one called <code>trails_new.db</code> (now that I think about it, I probably should’ve given it a different name) which contains park information, where each state has a different table.</p>
-<p>For reference here is how our scraper worked! <img src="FinalProject (1)_files/figure-html/cell-54-1-Capture.JPG" class="img-fluid" alt="Capture.JPG"></p>
 <section id="database_info.py" class="level2">
 <h2 class="anchored" data-anchor-id="database_info.py">database_info.py</h2>
 <p>Everything relevant to managing the datbase is stored in a different python file called <code>database_info.py</code>. Here I can show you the structure of both databases:</p>
 <section id="making-the-databases" class="level3">
 <h3 class="anchored" data-anchor-id="making-the-databases">Making the databases</h3>
-<div class="sourceCode" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_db(state):</span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>    conn <span class="op">=</span> sqlite3.<span class="ex">connect</span>(<span class="st">"trails.db"</span>)</span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    cmd <span class="op">=</span> <span class="ss">f"""</span></span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="ss">    CREATE TABLE IF NOT EXISTS </span><span class="sc">{</span>state_name_code_name_dict[state]<span class="sc">}</span><span class="ss">(</span></span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="ss">    name VARCHAR(255),</span></span>
-<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="ss">    coords VARCHAR(255),</span></span>
-<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a><span class="ss">    Distance VARCHAR(255),</span></span>
-<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a><span class="ss">    'Avg time' VARCHAR(255),</span></span>
-<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a><span class="ss">    Climb VARCHAR(255),</span></span>
-<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a><span class="ss">    Descent VARCHAR(255),</span></span>
-<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a><span class="ss">    Activities VARCHAR(255),</span></span>
-<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a><span class="ss">    'Riding Area' VARCHAR(255),</span></span>
-<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a><span class="ss">    'Difficulty Rating' VARCHAR(255),</span></span>
-<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a><span class="ss">    'Dogs Allowed' VARCHAR(255),</span></span>
-<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a><span class="ss">    'Local Popularity' VARCHAR(255),</span></span>
-<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a><span class="ss">    'Altitude start' VARCHAR(255),</span></span>
-<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a><span class="ss">    'Altitude end' VARCHAR(255),</span></span>
-<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a><span class="ss">    Grade VARCHAR(255)</span></span>
-<span id="cb25-19"><a href="#cb25-19" aria-hidden="true" tabindex="-1"></a><span class="ss">    );</span></span>
-<span id="cb25-20"><a href="#cb25-20" aria-hidden="true" tabindex="-1"></a><span class="ss">    """</span></span>
-<span id="cb25-21"><a href="#cb25-21" aria-hidden="true" tabindex="-1"></a>    cursor <span class="op">=</span> conn.cursor()</span>
-<span id="cb25-22"><a href="#cb25-22" aria-hidden="true" tabindex="-1"></a>    cursor.execute(cmd)</span>
-<span id="cb25-23"><a href="#cb25-23" aria-hidden="true" tabindex="-1"></a>    cursor.close()</span>
-<span id="cb25-24"><a href="#cb25-24" aria-hidden="true" tabindex="-1"></a>    conn.close()</span>
-<span id="cb25-25"><a href="#cb25-25" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb25-26"><a href="#cb25-26" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_db_parks(state):</span>
-<span id="cb25-27"><a href="#cb25-27" aria-hidden="true" tabindex="-1"></a>    conn <span class="op">=</span> sqlite3.<span class="ex">connect</span>(<span class="st">"trails_new.db"</span>)</span>
-<span id="cb25-28"><a href="#cb25-28" aria-hidden="true" tabindex="-1"></a>    cmd <span class="op">=</span> <span class="ss">f"""</span></span>
-<span id="cb25-29"><a href="#cb25-29" aria-hidden="true" tabindex="-1"></a><span class="ss">    CREATE TABLE IF NOT EXISTS </span><span class="sc">{</span>state_name_code_name_dict[state]<span class="sc">}</span><span class="ss">(</span></span>
-<span id="cb25-30"><a href="#cb25-30" aria-hidden="true" tabindex="-1"></a><span class="ss">    Name VARCHAR(255),</span></span>
-<span id="cb25-31"><a href="#cb25-31" aria-hidden="true" tabindex="-1"></a><span class="ss">    Location VARCHAR(255),</span></span>
-<span id="cb25-32"><a href="#cb25-32" aria-hidden="true" tabindex="-1"></a><span class="ss">    Coords VARCHAR(255),</span></span>
-<span id="cb25-33"><a href="#cb25-33" aria-hidden="true" tabindex="-1"></a><span class="ss">    'Trails (view details)' SMALLINT(255),</span></span>
-<span id="cb25-34"><a href="#cb25-34" aria-hidden="true" tabindex="-1"></a><span class="ss">    'Total Distance' VARCHAR(255),</span></span>
-<span id="cb25-35"><a href="#cb25-35" aria-hidden="true" tabindex="-1"></a><span class="ss">    'State Ranking' VARCHAR(255),</span></span>
-<span id="cb25-36"><a href="#cb25-36" aria-hidden="true" tabindex="-1"></a><span class="ss">    'Access Road/Trail' SMALLINT(255),</span></span>
-<span id="cb25-37"><a href="#cb25-37" aria-hidden="true" tabindex="-1"></a><span class="ss">    White SMALLINT(255),</span></span>
-<span id="cb25-38"><a href="#cb25-38" aria-hidden="true" tabindex="-1"></a><span class="ss">    Green SMALLINT(255),</span></span>
-<span id="cb25-39"><a href="#cb25-39" aria-hidden="true" tabindex="-1"></a><span class="ss">    Blue SMALLINT(255),</span></span>
-<span id="cb25-40"><a href="#cb25-40" aria-hidden="true" tabindex="-1"></a><span class="ss">    Black SMALLINT(255),</span></span>
-<span id="cb25-41"><a href="#cb25-41" aria-hidden="true" tabindex="-1"></a><span class="ss">    'Double Black Diamond' SMALLINT(255),</span></span>
-<span id="cb25-42"><a href="#cb25-42" aria-hidden="true" tabindex="-1"></a><span class="ss">    Proline SMALLINT(255)</span></span>
-<span id="cb25-43"><a href="#cb25-43" aria-hidden="true" tabindex="-1"></a><span class="ss">    );</span></span>
-<span id="cb25-44"><a href="#cb25-44" aria-hidden="true" tabindex="-1"></a><span class="ss">    """</span></span>
-<span id="cb25-45"><a href="#cb25-45" aria-hidden="true" tabindex="-1"></a>    cursor <span class="op">=</span> conn.cursor()</span>
-<span id="cb25-46"><a href="#cb25-46" aria-hidden="true" tabindex="-1"></a>    cursor.execute(cmd)</span>
-<span id="cb25-47"><a href="#cb25-47" aria-hidden="true" tabindex="-1"></a>    cursor.close()</span>
-<span id="cb25-48"><a href="#cb25-48" aria-hidden="true" tabindex="-1"></a>    conn.close()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_db(state):</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>    conn <span class="op">=</span> sqlite3.<span class="ex">connect</span>(<span class="st">"trails.db"</span>)</span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>    cmd <span class="op">=</span> <span class="ss">f"""</span></span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a><span class="ss">    CREATE TABLE IF NOT EXISTS </span><span class="sc">{</span>state_name_code_name_dict[state]<span class="sc">}</span><span class="ss">(</span></span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a><span class="ss">    name VARCHAR(255),</span></span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a><span class="ss">    coords VARCHAR(255),</span></span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a><span class="ss">    Distance VARCHAR(255),</span></span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a><span class="ss">    'Avg time' VARCHAR(255),</span></span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a><span class="ss">    Climb VARCHAR(255),</span></span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a><span class="ss">    Descent VARCHAR(255),</span></span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a><span class="ss">    Activities VARCHAR(255),</span></span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a><span class="ss">    'Riding Area' VARCHAR(255),</span></span>
+<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a><span class="ss">    'Difficulty Rating' VARCHAR(255),</span></span>
+<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a><span class="ss">    'Dogs Allowed' VARCHAR(255),</span></span>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a><span class="ss">    'Local Popularity' VARCHAR(255),</span></span>
+<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a><span class="ss">    'Altitude start' VARCHAR(255),</span></span>
+<span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a><span class="ss">    'Altitude end' VARCHAR(255),</span></span>
+<span id="cb38-18"><a href="#cb38-18" aria-hidden="true" tabindex="-1"></a><span class="ss">    Grade VARCHAR(255)</span></span>
+<span id="cb38-19"><a href="#cb38-19" aria-hidden="true" tabindex="-1"></a><span class="ss">    );</span></span>
+<span id="cb38-20"><a href="#cb38-20" aria-hidden="true" tabindex="-1"></a><span class="ss">    """</span></span>
+<span id="cb38-21"><a href="#cb38-21" aria-hidden="true" tabindex="-1"></a>    cursor <span class="op">=</span> conn.cursor()</span>
+<span id="cb38-22"><a href="#cb38-22" aria-hidden="true" tabindex="-1"></a>    cursor.execute(cmd)</span>
+<span id="cb38-23"><a href="#cb38-23" aria-hidden="true" tabindex="-1"></a>    cursor.close()</span>
+<span id="cb38-24"><a href="#cb38-24" aria-hidden="true" tabindex="-1"></a>    conn.close()</span>
+<span id="cb38-25"><a href="#cb38-25" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb38-26"><a href="#cb38-26" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_db_parks(state):</span>
+<span id="cb38-27"><a href="#cb38-27" aria-hidden="true" tabindex="-1"></a>    conn <span class="op">=</span> sqlite3.<span class="ex">connect</span>(<span class="st">"trails_new.db"</span>)</span>
+<span id="cb38-28"><a href="#cb38-28" aria-hidden="true" tabindex="-1"></a>    cmd <span class="op">=</span> <span class="ss">f"""</span></span>
+<span id="cb38-29"><a href="#cb38-29" aria-hidden="true" tabindex="-1"></a><span class="ss">    CREATE TABLE IF NOT EXISTS </span><span class="sc">{</span>state_name_code_name_dict[state]<span class="sc">}</span><span class="ss">(</span></span>
+<span id="cb38-30"><a href="#cb38-30" aria-hidden="true" tabindex="-1"></a><span class="ss">    Name VARCHAR(255),</span></span>
+<span id="cb38-31"><a href="#cb38-31" aria-hidden="true" tabindex="-1"></a><span class="ss">    Location VARCHAR(255),</span></span>
+<span id="cb38-32"><a href="#cb38-32" aria-hidden="true" tabindex="-1"></a><span class="ss">    Coords VARCHAR(255),</span></span>
+<span id="cb38-33"><a href="#cb38-33" aria-hidden="true" tabindex="-1"></a><span class="ss">    'Trails (view details)' SMALLINT(255),</span></span>
+<span id="cb38-34"><a href="#cb38-34" aria-hidden="true" tabindex="-1"></a><span class="ss">    'Total Distance' VARCHAR(255),</span></span>
+<span id="cb38-35"><a href="#cb38-35" aria-hidden="true" tabindex="-1"></a><span class="ss">    'State Ranking' VARCHAR(255),</span></span>
+<span id="cb38-36"><a href="#cb38-36" aria-hidden="true" tabindex="-1"></a><span class="ss">    'Access Road/Trail' SMALLINT(255),</span></span>
+<span id="cb38-37"><a href="#cb38-37" aria-hidden="true" tabindex="-1"></a><span class="ss">    White SMALLINT(255),</span></span>
+<span id="cb38-38"><a href="#cb38-38" aria-hidden="true" tabindex="-1"></a><span class="ss">    Green SMALLINT(255),</span></span>
+<span id="cb38-39"><a href="#cb38-39" aria-hidden="true" tabindex="-1"></a><span class="ss">    Blue SMALLINT(255),</span></span>
+<span id="cb38-40"><a href="#cb38-40" aria-hidden="true" tabindex="-1"></a><span class="ss">    Black SMALLINT(255),</span></span>
+<span id="cb38-41"><a href="#cb38-41" aria-hidden="true" tabindex="-1"></a><span class="ss">    'Double Black Diamond' SMALLINT(255),</span></span>
+<span id="cb38-42"><a href="#cb38-42" aria-hidden="true" tabindex="-1"></a><span class="ss">    Proline SMALLINT(255)</span></span>
+<span id="cb38-43"><a href="#cb38-43" aria-hidden="true" tabindex="-1"></a><span class="ss">    );</span></span>
+<span id="cb38-44"><a href="#cb38-44" aria-hidden="true" tabindex="-1"></a><span class="ss">    """</span></span>
+<span id="cb38-45"><a href="#cb38-45" aria-hidden="true" tabindex="-1"></a>    cursor <span class="op">=</span> conn.cursor()</span>
+<span id="cb38-46"><a href="#cb38-46" aria-hidden="true" tabindex="-1"></a>    cursor.execute(cmd)</span>
+<span id="cb38-47"><a href="#cb38-47" aria-hidden="true" tabindex="-1"></a>    cursor.close()</span>
+<span id="cb38-48"><a href="#cb38-48" aria-hidden="true" tabindex="-1"></a>    conn.close()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>These two functions were run in order to actually create the datbaase for the first time. They contain the variables as mentioned previously, mostly in the form of text.</p>
 </section>
 <section id="adding-information" class="level3">
 <h3 class="anchored" data-anchor-id="adding-information">Adding information</h3>
 <p>If you recall from the scraping functions, there was a function call that would add information from each park to the SQL database. Here’s the source code for those functions:</p>
-<div class="sourceCode" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> get_db():</span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>    conn <span class="op">=</span> sqlite3.<span class="ex">connect</span>(<span class="st">"trails.db"</span>)</span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> conn</span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> add_trails(df,state):</span>
-<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>    conn <span class="op">=</span> get_db()</span>
-<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>    df.to_sql(state, conn, if_exists <span class="op">=</span> <span class="st">"append"</span>, index <span class="op">=</span> <span class="va">False</span>)</span>
-<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> get_db_new():</span>
-<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>    conn <span class="op">=</span> sqlite3.<span class="ex">connect</span>(<span class="st">"trails_new.db"</span>)</span>
-<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> conn</span>
-<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> add_trails_new(df,state):</span>
-<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a>    conn <span class="op">=</span> get_db_new()</span>
-<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>    df.to_sql(state, conn, if_exists <span class="op">=</span> <span class="st">"append"</span>, index <span class="op">=</span> <span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> get_db():</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>    conn <span class="op">=</span> sqlite3.<span class="ex">connect</span>(<span class="st">"trails.db"</span>)</span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> conn</span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> add_trails(df,state):</span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>    conn <span class="op">=</span> get_db()</span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>    df.to_sql(state, conn, if_exists <span class="op">=</span> <span class="st">"append"</span>, index <span class="op">=</span> <span class="va">False</span>)</span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> get_db_new():</span>
+<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a>    conn <span class="op">=</span> sqlite3.<span class="ex">connect</span>(<span class="st">"trails_new.db"</span>)</span>
+<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> conn</span>
+<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> add_trails_new(df,state):</span>
+<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a>    conn <span class="op">=</span> get_db_new()</span>
+<span id="cb39-15"><a href="#cb39-15" aria-hidden="true" tabindex="-1"></a>    df.to_sql(state, conn, if_exists <span class="op">=</span> <span class="st">"append"</span>, index <span class="op">=</span> <span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>The functions <code>get_db</code> and <code>get_db_new</code> (most things relating to <code>scraper_parks</code> are labeled <code>new</code> since we did this second) establish connections to their respective databases. <code>add_trails</code> and <code>add_trails_new</code>, therefore, are actually responsible for adding entries to each database. Note that they take a <code>df</code> as one input (which contains the scraped info) and a state name, which sends the information to the correct table.</p>
 </section>
 <section id="miscellaneous-tables" class="level3">
 <h3 class="anchored" data-anchor-id="miscellaneous-tables">Miscellaneous Tables</h3>
 <p>There are several dictionaries and lists that we generated in order to make the functions easier to run:</p>
-<div class="sourceCode" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>states <span class="op">=</span> [<span class="st">"Alabama"</span>, <span class="st">"Alaska"</span>, <span class="st">"Arizona"</span>, <span class="st">"Arkansas"</span>, <span class="st">"California"</span>, <span class="st">"Colorado"</span>, <span class="st">"Connecticut"</span>, <span class="st">"Delaware"</span>, <span class="st">"Florida"</span>, <span class="st">"Georgia"</span>, <span class="st">"Hawaii"</span>, <span class="st">"idaho-3166"</span>, <span class="st">"Illinois"</span>, <span class="st">"Indiana"</span>, <span class="st">"Iowa"</span>, <span class="st">"Kansas"</span>, <span class="st">"Kentucky"</span>, <span class="st">"Louisiana"</span>, <span class="st">"Maine"</span>, <span class="st">"Maryland"</span>, <span class="st">"Massachusetts"</span>, <span class="st">"Michigan"</span>, <span class="st">"Minnesota"</span>, <span class="st">"Mississippi"</span>, <span class="st">"Missouri"</span>, <span class="st">"Montana"</span>, <span class="st">"Nebraska"</span>, <span class="st">"Nevada"</span>, <span class="st">"new-hampshire"</span>, <span class="st">"new-jersey"</span>, <span class="st">"new-mexico"</span>, <span class="st">"new-york"</span>, <span class="st">"north-carolina"</span>, <span class="st">"north-dakota"</span>, <span class="st">"Ohio"</span>, <span class="st">"Oklahoma"</span>, <span class="st">"Oregon"</span>, <span class="st">"Pennsylvania"</span>, <span class="st">"rhode-island"</span>, <span class="st">"south-carolina"</span>, <span class="st">"south-dakota"</span>, <span class="st">"Tennessee"</span>, <span class="st">"Texas"</span>, <span class="st">"Utah"</span>, <span class="st">"Vermont"</span>, <span class="st">"Virginia"</span>, <span class="st">"Washington"</span>, <span class="st">"west-virginia"</span>, <span class="st">"Wisconsin"</span>, <span class="st">"Wyoming"</span>]</span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>state_name_code_name_dict <span class="op">=</span> {</span>
-<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Alabama'</span>: <span class="st">'Alabama'</span>,</span>
-<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Alaska'</span>: <span class="st">'Alaska'</span>,</span>
-<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Arizona'</span>: <span class="st">'Arizona'</span>,</span>
-<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Arkansas'</span>: <span class="st">'Arkansas'</span>,</span>
-<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">'California'</span>: <span class="st">'California'</span>,</span>
-<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Colorado'</span>: <span class="st">'Colorado'</span>,</span>
-<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Connecticut'</span>: <span class="st">'Connecticut'</span>,</span>
-<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Delaware'</span>: <span class="st">'Delaware'</span>,</span>
-<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Florida'</span>: <span class="st">'Florida'</span>,</span>
-<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Georgia'</span>: <span class="st">'Georgia'</span>,</span>
-<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Hawaii'</span>: <span class="st">'Hawaii'</span>,</span>
-<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a>    <span class="st">'idaho-3166'</span>: <span class="st">'Idaho'</span>,</span>
-<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Illinois'</span>: <span class="st">'Illinois'</span>,</span>
-<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Indiana'</span>: <span class="st">'Indiana'</span>,</span>
-<span id="cb27-18"><a href="#cb27-18" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Iowa'</span>: <span class="st">'Iowa'</span>,</span>
-<span id="cb27-19"><a href="#cb27-19" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Kansas'</span>: <span class="st">'Kansas'</span>,</span>
-<span id="cb27-20"><a href="#cb27-20" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Kentucky'</span>: <span class="st">'Kentucky'</span>,</span>
-<span id="cb27-21"><a href="#cb27-21" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Louisiana'</span>: <span class="st">'Louisiana'</span>,</span>
-<span id="cb27-22"><a href="#cb27-22" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Maine'</span>: <span class="st">'Maine'</span>,</span>
-<span id="cb27-23"><a href="#cb27-23" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Maryland'</span>: <span class="st">'Maryland'</span>,</span>
-<span id="cb27-24"><a href="#cb27-24" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Massachusetts'</span>: <span class="st">'Massachusetts'</span>,</span>
-<span id="cb27-25"><a href="#cb27-25" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Michigan'</span>: <span class="st">'Michigan'</span>,</span>
-<span id="cb27-26"><a href="#cb27-26" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Minnesota'</span>: <span class="st">'Minnesota'</span>,</span>
-<span id="cb27-27"><a href="#cb27-27" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Mississippi'</span>: <span class="st">'Mississippi'</span>,</span>
-<span id="cb27-28"><a href="#cb27-28" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Missouri'</span>: <span class="st">'Missouri'</span>,</span>
-<span id="cb27-29"><a href="#cb27-29" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Montana'</span>: <span class="st">'Montana'</span>,</span>
-<span id="cb27-30"><a href="#cb27-30" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Nebraska'</span>: <span class="st">'Nebraska'</span>,</span>
-<span id="cb27-31"><a href="#cb27-31" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Nevada'</span>: <span class="st">'Nevada'</span>,</span>
-<span id="cb27-32"><a href="#cb27-32" aria-hidden="true" tabindex="-1"></a>    <span class="st">'new-hampshire'</span>: <span class="st">'NewHampshire'</span>,</span>
-<span id="cb27-33"><a href="#cb27-33" aria-hidden="true" tabindex="-1"></a>    <span class="st">'new-jersey'</span>: <span class="st">'NewJersey'</span>,</span>
-<span id="cb27-34"><a href="#cb27-34" aria-hidden="true" tabindex="-1"></a>    <span class="st">'new-mexico'</span>: <span class="st">'NewMexico'</span>,</span>
-<span id="cb27-35"><a href="#cb27-35" aria-hidden="true" tabindex="-1"></a>    <span class="st">'new-york'</span>: <span class="st">'NewYork'</span>,</span>
-<span id="cb27-36"><a href="#cb27-36" aria-hidden="true" tabindex="-1"></a>    <span class="st">'north-carolina'</span>: <span class="st">'NorthCarolina'</span>,</span>
-<span id="cb27-37"><a href="#cb27-37" aria-hidden="true" tabindex="-1"></a>    <span class="st">'north-dakota'</span>: <span class="st">'NorthDakota'</span>,</span>
-<span id="cb27-38"><a href="#cb27-38" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Ohio'</span>: <span class="st">'Ohio'</span>,</span>
-<span id="cb27-39"><a href="#cb27-39" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Oklahoma'</span>: <span class="st">'Oklahoma'</span>,</span>
-<span id="cb27-40"><a href="#cb27-40" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Oregon'</span>: <span class="st">'Oregon'</span>,</span>
-<span id="cb27-41"><a href="#cb27-41" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Pennsylvania'</span>: <span class="st">'Pennsylvania'</span>,</span>
-<span id="cb27-42"><a href="#cb27-42" aria-hidden="true" tabindex="-1"></a>    <span class="st">'rhode-island'</span>: <span class="st">'RhodeIsland'</span>,</span>
-<span id="cb27-43"><a href="#cb27-43" aria-hidden="true" tabindex="-1"></a>    <span class="st">'south-carolina'</span>: <span class="st">'SouthCarolina'</span>,</span>
-<span id="cb27-44"><a href="#cb27-44" aria-hidden="true" tabindex="-1"></a>    <span class="st">'south-dakota'</span>: <span class="st">'SouthDakota'</span>,</span>
-<span id="cb27-45"><a href="#cb27-45" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Tennessee'</span>: <span class="st">'Tennessee'</span>,</span>
-<span id="cb27-46"><a href="#cb27-46" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Texas'</span>: <span class="st">'Texas'</span>,</span>
-<span id="cb27-47"><a href="#cb27-47" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Utah'</span>: <span class="st">'Utah'</span>,</span>
-<span id="cb27-48"><a href="#cb27-48" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Vermont'</span>: <span class="st">'Vermont'</span>,</span>
-<span id="cb27-49"><a href="#cb27-49" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Virginia'</span>: <span class="st">'Virginia'</span>,</span>
-<span id="cb27-50"><a href="#cb27-50" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Washington'</span>: <span class="st">'Washington'</span>,</span>
-<span id="cb27-51"><a href="#cb27-51" aria-hidden="true" tabindex="-1"></a>    <span class="st">'west-virginia'</span>: <span class="st">'WestVirginia'</span>,</span>
-<span id="cb27-52"><a href="#cb27-52" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Wisconsin'</span>: <span class="st">'Wisconsin'</span>,</span>
-<span id="cb27-53"><a href="#cb27-53" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Wyoming'</span>: <span class="st">'Wyoming'</span></span>
-<span id="cb27-54"><a href="#cb27-54" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb27-55"><a href="#cb27-55" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-56"><a href="#cb27-56" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-57"><a href="#cb27-57" aria-hidden="true" tabindex="-1"></a>state_dictionary <span class="op">=</span> {<span class="st">'Alabama'</span>: <span class="dv">11</span>, <span class="st">'Alaska'</span>: <span class="dv">11</span>, <span class="st">'Arizona'</span>: <span class="dv">49</span>, <span class="st">'Arkansas'</span>: <span class="dv">16</span>, <span class="st">'California'</span>: <span class="dv">152</span>, <span class="st">'Colorado'</span>: <span class="dv">69</span>, <span class="st">'Connecticut'</span>: <span class="dv">56</span>, <span class="st">'Delaware'</span>: <span class="dv">4</span>, <span class="st">'Florida'</span>: <span class="dv">18</span>, <span class="st">'Georgia'</span>: <span class="dv">17</span>, <span class="st">'Hawaii'</span>: <span class="dv">5</span>, <span class="st">'idaho-3166'</span>: <span class="dv">31</span>, <span class="st">'Illinois'</span>: <span class="dv">51</span>, <span class="st">'Indiana'</span>: <span class="dv">10</span>, <span class="st">'Iowa'</span>: <span class="dv">8</span>, <span class="st">'Kansas'</span>: <span class="dv">3</span>, <span class="st">'Kentucky'</span>: <span class="dv">9</span>, <span class="st">'Louisiana'</span>: <span class="dv">2</span>, <span class="st">'Maine'</span>: <span class="dv">27</span>, <span class="st">'Maryland'</span>: <span class="dv">16</span>, <span class="st">'Massachusetts'</span>: <span class="dv">146</span>, <span class="st">'Michigan'</span>: <span class="dv">55</span>, <span class="st">'Minnesota'</span>: <span class="dv">36</span>, <span class="st">'Mississippi'</span>: <span class="dv">3</span>, <span class="st">'Missouri'</span>: <span class="dv">11</span>, <span class="st">'Montana'</span>: <span class="dv">41</span>, <span class="st">'Nebraska'</span>: <span class="dv">3</span>, <span class="st">'Nevada'</span>: <span class="dv">16</span>, <span class="st">'new-hampshire'</span>: <span class="dv">41</span>, <span class="st">'new-jersey'</span>: <span class="dv">40</span>, <span class="st">'new-mexico'</span>: <span class="dv">25</span>, <span class="st">'new-york'</span>: <span class="dv">60</span>, <span class="st">'north-carolina'</span>: <span class="dv">26</span>, <span class="st">'north-dakota'</span>: <span class="dv">7</span>, <span class="st">'Ohio'</span>: <span class="dv">29</span>, <span class="st">'Oklahoma'</span>: <span class="dv">4</span>, <span class="st">'Oregon'</span>: <span class="dv">38</span>, <span class="st">'Pennsylvania'</span>: <span class="dv">54</span>, <span class="st">'rhode-island'</span>: <span class="dv">9</span>, <span class="st">'south-carolina'</span>: <span class="dv">6</span>, <span class="st">'south-dakota'</span>: <span class="dv">7</span>, <span class="st">'Tennessee'</span>: <span class="dv">16</span>, <span class="st">'Texas'</span>: <span class="dv">50</span>, <span class="st">'Utah'</span>: <span class="dv">62</span>, <span class="st">'Vermont'</span>: <span class="dv">25</span>, <span class="st">'Virginia'</span>: <span class="dv">27</span>, <span class="st">'Washington'</span>: <span class="dv">92</span>, <span class="st">'west-virginia'</span>: <span class="dv">18</span>, <span class="st">'Wisconsin'</span>: <span class="dv">25</span>, <span class="st">'Wyoming'</span>: <span class="dv">19</span>}</span>
-<span id="cb27-58"><a href="#cb27-58" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-59"><a href="#cb27-59" aria-hidden="true" tabindex="-1"></a>state_parks_dictionary <span class="op">=</span> {<span class="st">'Alabama'</span>: <span class="dv">1</span>, <span class="st">'Alaska'</span>: <span class="dv">1</span>, <span class="st">'Arizona'</span>: <span class="dv">3</span>, <span class="st">'Arkansas'</span>: <span class="dv">2</span>, <span class="st">'California'</span>: <span class="dv">8</span>, <span class="st">'Colorado'</span>: <span class="dv">4</span>, <span class="st">'Connecticut'</span>: <span class="dv">7</span>, <span class="st">'Delaware'</span>: <span class="dv">1</span>, <span class="st">'Florida'</span>: <span class="dv">2</span>, <span class="st">'Georgia'</span>: <span class="dv">2</span>, <span class="st">'Hawaii'</span>: <span class="dv">1</span>, <span class="st">'idaho-3166'</span>: <span class="dv">2</span>, <span class="st">'Illinois'</span>: <span class="dv">10</span>, <span class="st">'Indiana'</span>: <span class="dv">1</span>, <span class="st">'Iowa'</span>: <span class="dv">1</span>, <span class="st">'Kansas'</span>: <span class="dv">1</span>, <span class="st">'Kentucky'</span>: <span class="dv">1</span>, <span class="st">'Louisiana'</span>: <span class="dv">1</span>, <span class="st">'Maine'</span>: <span class="dv">3</span>, <span class="st">'Maryland'</span>: <span class="dv">1</span>, <span class="st">'Massachusetts'</span>: <span class="dv">7</span>, <span class="st">'Michigan'</span>: <span class="dv">5</span>, <span class="st">'Minnesota'</span>: <span class="dv">3</span>, <span class="st">'Mississippi'</span>: <span class="dv">1</span>, <span class="st">'Missouri'</span>: <span class="dv">2</span>, <span class="st">'Montana'</span>: <span class="dv">2</span>, <span class="st">'Nebraska'</span>: <span class="dv">1</span>, <span class="st">'Nevada'</span>: <span class="dv">1</span>, <span class="st">'new-hampshire'</span>: <span class="dv">3</span>, <span class="st">'new-jersey'</span>: <span class="dv">3</span>, <span class="st">'new-mexico'</span>: <span class="dv">2</span>, <span class="st">'new-york'</span>: <span class="dv">5</span>, <span class="st">'north-carolina'</span>: <span class="dv">3</span>, <span class="st">'north-dakota'</span>: <span class="dv">1</span>, <span class="st">'Ohio'</span>: <span class="dv">4</span>, <span class="st">'Oklahoma'</span>: <span class="dv">1</span>, <span class="st">'Oregon'</span>: <span class="dv">3</span>, <span class="st">'Pennsylvania'</span>: <span class="dv">3</span>, <span class="st">'rhode-island'</span>: <span class="dv">1</span>, <span class="st">'south-carolina'</span>: <span class="dv">1</span>, <span class="st">'south-dakota'</span>: <span class="dv">1</span>, <span class="st">'Tennessee'</span>: <span class="dv">2</span>, <span class="st">'Texas'</span>: <span class="dv">4</span>, <span class="st">'Utah'</span>: <span class="dv">3</span>, <span class="st">'Vermont'</span>: <span class="dv">2</span>, <span class="st">'Virginia'</span>: <span class="dv">2</span>, <span class="st">'Washington'</span>: <span class="dv">6</span>, <span class="st">'west-virginia'</span>: <span class="dv">2</span>, <span class="st">'Wisconsin'</span>: <span class="dv">3</span>, <span class="st">'Wyoming'</span>: <span class="dv">1</span>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>states <span class="op">=</span> [<span class="st">"Alabama"</span>, <span class="st">"Alaska"</span>, <span class="st">"Arizona"</span>, <span class="st">"Arkansas"</span>, <span class="st">"California"</span>, <span class="st">"Colorado"</span>, <span class="st">"Connecticut"</span>, <span class="st">"Delaware"</span>, <span class="st">"Florida"</span>, <span class="st">"Georgia"</span>, <span class="st">"Hawaii"</span>, <span class="st">"idaho-3166"</span>, <span class="st">"Illinois"</span>, <span class="st">"Indiana"</span>, <span class="st">"Iowa"</span>, <span class="st">"Kansas"</span>, <span class="st">"Kentucky"</span>, <span class="st">"Louisiana"</span>, <span class="st">"Maine"</span>, <span class="st">"Maryland"</span>, <span class="st">"Massachusetts"</span>, <span class="st">"Michigan"</span>, <span class="st">"Minnesota"</span>, <span class="st">"Mississippi"</span>, <span class="st">"Missouri"</span>, <span class="st">"Montana"</span>, <span class="st">"Nebraska"</span>, <span class="st">"Nevada"</span>, <span class="st">"new-hampshire"</span>, <span class="st">"new-jersey"</span>, <span class="st">"new-mexico"</span>, <span class="st">"new-york"</span>, <span class="st">"north-carolina"</span>, <span class="st">"north-dakota"</span>, <span class="st">"Ohio"</span>, <span class="st">"Oklahoma"</span>, <span class="st">"Oregon"</span>, <span class="st">"Pennsylvania"</span>, <span class="st">"rhode-island"</span>, <span class="st">"south-carolina"</span>, <span class="st">"south-dakota"</span>, <span class="st">"Tennessee"</span>, <span class="st">"Texas"</span>, <span class="st">"Utah"</span>, <span class="st">"Vermont"</span>, <span class="st">"Virginia"</span>, <span class="st">"Washington"</span>, <span class="st">"west-virginia"</span>, <span class="st">"Wisconsin"</span>, <span class="st">"Wyoming"</span>]</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>state_name_code_name_dict <span class="op">=</span> {</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Alabama'</span>: <span class="st">'Alabama'</span>,</span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Alaska'</span>: <span class="st">'Alaska'</span>,</span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Arizona'</span>: <span class="st">'Arizona'</span>,</span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Arkansas'</span>: <span class="st">'Arkansas'</span>,</span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">'California'</span>: <span class="st">'California'</span>,</span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Colorado'</span>: <span class="st">'Colorado'</span>,</span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Connecticut'</span>: <span class="st">'Connecticut'</span>,</span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Delaware'</span>: <span class="st">'Delaware'</span>,</span>
+<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Florida'</span>: <span class="st">'Florida'</span>,</span>
+<span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Georgia'</span>: <span class="st">'Georgia'</span>,</span>
+<span id="cb40-14"><a href="#cb40-14" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Hawaii'</span>: <span class="st">'Hawaii'</span>,</span>
+<span id="cb40-15"><a href="#cb40-15" aria-hidden="true" tabindex="-1"></a>    <span class="st">'idaho-3166'</span>: <span class="st">'Idaho'</span>,</span>
+<span id="cb40-16"><a href="#cb40-16" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Illinois'</span>: <span class="st">'Illinois'</span>,</span>
+<span id="cb40-17"><a href="#cb40-17" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Indiana'</span>: <span class="st">'Indiana'</span>,</span>
+<span id="cb40-18"><a href="#cb40-18" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Iowa'</span>: <span class="st">'Iowa'</span>,</span>
+<span id="cb40-19"><a href="#cb40-19" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Kansas'</span>: <span class="st">'Kansas'</span>,</span>
+<span id="cb40-20"><a href="#cb40-20" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Kentucky'</span>: <span class="st">'Kentucky'</span>,</span>
+<span id="cb40-21"><a href="#cb40-21" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Louisiana'</span>: <span class="st">'Louisiana'</span>,</span>
+<span id="cb40-22"><a href="#cb40-22" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Maine'</span>: <span class="st">'Maine'</span>,</span>
+<span id="cb40-23"><a href="#cb40-23" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Maryland'</span>: <span class="st">'Maryland'</span>,</span>
+<span id="cb40-24"><a href="#cb40-24" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Massachusetts'</span>: <span class="st">'Massachusetts'</span>,</span>
+<span id="cb40-25"><a href="#cb40-25" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Michigan'</span>: <span class="st">'Michigan'</span>,</span>
+<span id="cb40-26"><a href="#cb40-26" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Minnesota'</span>: <span class="st">'Minnesota'</span>,</span>
+<span id="cb40-27"><a href="#cb40-27" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Mississippi'</span>: <span class="st">'Mississippi'</span>,</span>
+<span id="cb40-28"><a href="#cb40-28" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Missouri'</span>: <span class="st">'Missouri'</span>,</span>
+<span id="cb40-29"><a href="#cb40-29" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Montana'</span>: <span class="st">'Montana'</span>,</span>
+<span id="cb40-30"><a href="#cb40-30" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Nebraska'</span>: <span class="st">'Nebraska'</span>,</span>
+<span id="cb40-31"><a href="#cb40-31" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Nevada'</span>: <span class="st">'Nevada'</span>,</span>
+<span id="cb40-32"><a href="#cb40-32" aria-hidden="true" tabindex="-1"></a>    <span class="st">'new-hampshire'</span>: <span class="st">'NewHampshire'</span>,</span>
+<span id="cb40-33"><a href="#cb40-33" aria-hidden="true" tabindex="-1"></a>    <span class="st">'new-jersey'</span>: <span class="st">'NewJersey'</span>,</span>
+<span id="cb40-34"><a href="#cb40-34" aria-hidden="true" tabindex="-1"></a>    <span class="st">'new-mexico'</span>: <span class="st">'NewMexico'</span>,</span>
+<span id="cb40-35"><a href="#cb40-35" aria-hidden="true" tabindex="-1"></a>    <span class="st">'new-york'</span>: <span class="st">'NewYork'</span>,</span>
+<span id="cb40-36"><a href="#cb40-36" aria-hidden="true" tabindex="-1"></a>    <span class="st">'north-carolina'</span>: <span class="st">'NorthCarolina'</span>,</span>
+<span id="cb40-37"><a href="#cb40-37" aria-hidden="true" tabindex="-1"></a>    <span class="st">'north-dakota'</span>: <span class="st">'NorthDakota'</span>,</span>
+<span id="cb40-38"><a href="#cb40-38" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Ohio'</span>: <span class="st">'Ohio'</span>,</span>
+<span id="cb40-39"><a href="#cb40-39" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Oklahoma'</span>: <span class="st">'Oklahoma'</span>,</span>
+<span id="cb40-40"><a href="#cb40-40" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Oregon'</span>: <span class="st">'Oregon'</span>,</span>
+<span id="cb40-41"><a href="#cb40-41" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Pennsylvania'</span>: <span class="st">'Pennsylvania'</span>,</span>
+<span id="cb40-42"><a href="#cb40-42" aria-hidden="true" tabindex="-1"></a>    <span class="st">'rhode-island'</span>: <span class="st">'RhodeIsland'</span>,</span>
+<span id="cb40-43"><a href="#cb40-43" aria-hidden="true" tabindex="-1"></a>    <span class="st">'south-carolina'</span>: <span class="st">'SouthCarolina'</span>,</span>
+<span id="cb40-44"><a href="#cb40-44" aria-hidden="true" tabindex="-1"></a>    <span class="st">'south-dakota'</span>: <span class="st">'SouthDakota'</span>,</span>
+<span id="cb40-45"><a href="#cb40-45" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Tennessee'</span>: <span class="st">'Tennessee'</span>,</span>
+<span id="cb40-46"><a href="#cb40-46" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Texas'</span>: <span class="st">'Texas'</span>,</span>
+<span id="cb40-47"><a href="#cb40-47" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Utah'</span>: <span class="st">'Utah'</span>,</span>
+<span id="cb40-48"><a href="#cb40-48" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Vermont'</span>: <span class="st">'Vermont'</span>,</span>
+<span id="cb40-49"><a href="#cb40-49" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Virginia'</span>: <span class="st">'Virginia'</span>,</span>
+<span id="cb40-50"><a href="#cb40-50" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Washington'</span>: <span class="st">'Washington'</span>,</span>
+<span id="cb40-51"><a href="#cb40-51" aria-hidden="true" tabindex="-1"></a>    <span class="st">'west-virginia'</span>: <span class="st">'WestVirginia'</span>,</span>
+<span id="cb40-52"><a href="#cb40-52" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Wisconsin'</span>: <span class="st">'Wisconsin'</span>,</span>
+<span id="cb40-53"><a href="#cb40-53" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Wyoming'</span>: <span class="st">'Wyoming'</span></span>
+<span id="cb40-54"><a href="#cb40-54" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb40-55"><a href="#cb40-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-56"><a href="#cb40-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-57"><a href="#cb40-57" aria-hidden="true" tabindex="-1"></a>state_dictionary <span class="op">=</span> {<span class="st">'Alabama'</span>: <span class="dv">11</span>, <span class="st">'Alaska'</span>: <span class="dv">11</span>, <span class="st">'Arizona'</span>: <span class="dv">49</span>, <span class="st">'Arkansas'</span>: <span class="dv">16</span>, <span class="st">'California'</span>: <span class="dv">152</span>, <span class="st">'Colorado'</span>: <span class="dv">69</span>, <span class="st">'Connecticut'</span>: <span class="dv">56</span>, <span class="st">'Delaware'</span>: <span class="dv">4</span>, <span class="st">'Florida'</span>: <span class="dv">18</span>, <span class="st">'Georgia'</span>: <span class="dv">17</span>, <span class="st">'Hawaii'</span>: <span class="dv">5</span>, <span class="st">'idaho-3166'</span>: <span class="dv">31</span>, <span class="st">'Illinois'</span>: <span class="dv">51</span>, <span class="st">'Indiana'</span>: <span class="dv">10</span>, <span class="st">'Iowa'</span>: <span class="dv">8</span>, <span class="st">'Kansas'</span>: <span class="dv">3</span>, <span class="st">'Kentucky'</span>: <span class="dv">9</span>, <span class="st">'Louisiana'</span>: <span class="dv">2</span>, <span class="st">'Maine'</span>: <span class="dv">27</span>, <span class="st">'Maryland'</span>: <span class="dv">16</span>, <span class="st">'Massachusetts'</span>: <span class="dv">146</span>, <span class="st">'Michigan'</span>: <span class="dv">55</span>, <span class="st">'Minnesota'</span>: <span class="dv">36</span>, <span class="st">'Mississippi'</span>: <span class="dv">3</span>, <span class="st">'Missouri'</span>: <span class="dv">11</span>, <span class="st">'Montana'</span>: <span class="dv">41</span>, <span class="st">'Nebraska'</span>: <span class="dv">3</span>, <span class="st">'Nevada'</span>: <span class="dv">16</span>, <span class="st">'new-hampshire'</span>: <span class="dv">41</span>, <span class="st">'new-jersey'</span>: <span class="dv">40</span>, <span class="st">'new-mexico'</span>: <span class="dv">25</span>, <span class="st">'new-york'</span>: <span class="dv">60</span>, <span class="st">'north-carolina'</span>: <span class="dv">26</span>, <span class="st">'north-dakota'</span>: <span class="dv">7</span>, <span class="st">'Ohio'</span>: <span class="dv">29</span>, <span class="st">'Oklahoma'</span>: <span class="dv">4</span>, <span class="st">'Oregon'</span>: <span class="dv">38</span>, <span class="st">'Pennsylvania'</span>: <span class="dv">54</span>, <span class="st">'rhode-island'</span>: <span class="dv">9</span>, <span class="st">'south-carolina'</span>: <span class="dv">6</span>, <span class="st">'south-dakota'</span>: <span class="dv">7</span>, <span class="st">'Tennessee'</span>: <span class="dv">16</span>, <span class="st">'Texas'</span>: <span class="dv">50</span>, <span class="st">'Utah'</span>: <span class="dv">62</span>, <span class="st">'Vermont'</span>: <span class="dv">25</span>, <span class="st">'Virginia'</span>: <span class="dv">27</span>, <span class="st">'Washington'</span>: <span class="dv">92</span>, <span class="st">'west-virginia'</span>: <span class="dv">18</span>, <span class="st">'Wisconsin'</span>: <span class="dv">25</span>, <span class="st">'Wyoming'</span>: <span class="dv">19</span>}</span>
+<span id="cb40-58"><a href="#cb40-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-59"><a href="#cb40-59" aria-hidden="true" tabindex="-1"></a>state_parks_dictionary <span class="op">=</span> {<span class="st">'Alabama'</span>: <span class="dv">1</span>, <span class="st">'Alaska'</span>: <span class="dv">1</span>, <span class="st">'Arizona'</span>: <span class="dv">3</span>, <span class="st">'Arkansas'</span>: <span class="dv">2</span>, <span class="st">'California'</span>: <span class="dv">8</span>, <span class="st">'Colorado'</span>: <span class="dv">4</span>, <span class="st">'Connecticut'</span>: <span class="dv">7</span>, <span class="st">'Delaware'</span>: <span class="dv">1</span>, <span class="st">'Florida'</span>: <span class="dv">2</span>, <span class="st">'Georgia'</span>: <span class="dv">2</span>, <span class="st">'Hawaii'</span>: <span class="dv">1</span>, <span class="st">'idaho-3166'</span>: <span class="dv">2</span>, <span class="st">'Illinois'</span>: <span class="dv">10</span>, <span class="st">'Indiana'</span>: <span class="dv">1</span>, <span class="st">'Iowa'</span>: <span class="dv">1</span>, <span class="st">'Kansas'</span>: <span class="dv">1</span>, <span class="st">'Kentucky'</span>: <span class="dv">1</span>, <span class="st">'Louisiana'</span>: <span class="dv">1</span>, <span class="st">'Maine'</span>: <span class="dv">3</span>, <span class="st">'Maryland'</span>: <span class="dv">1</span>, <span class="st">'Massachusetts'</span>: <span class="dv">7</span>, <span class="st">'Michigan'</span>: <span class="dv">5</span>, <span class="st">'Minnesota'</span>: <span class="dv">3</span>, <span class="st">'Mississippi'</span>: <span class="dv">1</span>, <span class="st">'Missouri'</span>: <span class="dv">2</span>, <span class="st">'Montana'</span>: <span class="dv">2</span>, <span class="st">'Nebraska'</span>: <span class="dv">1</span>, <span class="st">'Nevada'</span>: <span class="dv">1</span>, <span class="st">'new-hampshire'</span>: <span class="dv">3</span>, <span class="st">'new-jersey'</span>: <span class="dv">3</span>, <span class="st">'new-mexico'</span>: <span class="dv">2</span>, <span class="st">'new-york'</span>: <span class="dv">5</span>, <span class="st">'north-carolina'</span>: <span class="dv">3</span>, <span class="st">'north-dakota'</span>: <span class="dv">1</span>, <span class="st">'Ohio'</span>: <span class="dv">4</span>, <span class="st">'Oklahoma'</span>: <span class="dv">1</span>, <span class="st">'Oregon'</span>: <span class="dv">3</span>, <span class="st">'Pennsylvania'</span>: <span class="dv">3</span>, <span class="st">'rhode-island'</span>: <span class="dv">1</span>, <span class="st">'south-carolina'</span>: <span class="dv">1</span>, <span class="st">'south-dakota'</span>: <span class="dv">1</span>, <span class="st">'Tennessee'</span>: <span class="dv">2</span>, <span class="st">'Texas'</span>: <span class="dv">4</span>, <span class="st">'Utah'</span>: <span class="dv">3</span>, <span class="st">'Vermont'</span>: <span class="dv">2</span>, <span class="st">'Virginia'</span>: <span class="dv">2</span>, <span class="st">'Washington'</span>: <span class="dv">6</span>, <span class="st">'west-virginia'</span>: <span class="dv">2</span>, <span class="st">'Wisconsin'</span>: <span class="dv">3</span>, <span class="st">'Wyoming'</span>: <span class="dv">1</span>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p><code>state_dictionary</code> and <code>state_parks_dictionary</code> store the number of pages required for each state. <code>states</code> simply contains the names of all the states in alphabetical order, and <code>state_name_code_dict</code> helps sort between the name of a state and the way in which it is displayed on TrailForks URLs.</p>
 </section>
 </section>
 <section id="connecting-national-parks-to-individual-trailpark-info" class="level2">
 <h2 class="anchored" data-anchor-id="connecting-national-parks-to-individual-trailpark-info">Connecting National Parks to Individual Trail/Park Info</h2>
 <p>Now we need to make sure to connect the data that we’ve collected here with the actual table generated by the recommender to give the user more information. Let’s take a look at our output from the similarity score model:</p>
-<div id="cell-55" class="cell" data-execution_count="28">
-<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>output</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-57" class="cell" data-execution_count="28">
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>output</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="28">
 <div>
 
@@ -1207,31 +1515,31 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>Because we have two different SQL databases, one for nation-wide park data (<code>trails_new.db</code>) and one with state-wide trail data (<code>trails.db</code>), let’s split this into two different frames.</p>
-<div id="cell-57" class="cell" data-execution_count="29">
-<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>california_df <span class="op">=</span> output[output[<span class="st">'state'</span>] <span class="op">==</span> <span class="st">'California (CA)'</span>]</span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>non_california_df <span class="op">=</span> output[output[<span class="st">'state'</span>] <span class="op">!=</span> <span class="st">'California (CA)'</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-59" class="cell" data-execution_count="29">
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>california_df <span class="op">=</span> output[output[<span class="st">'state'</span>] <span class="op">==</span> <span class="st">'California (CA)'</span>]</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>non_california_df <span class="op">=</span> output[output[<span class="st">'state'</span>] <span class="op">!=</span> <span class="st">'California (CA)'</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Now we’ll get our databases in our notebook:</p>
 <p>There’s a bit of an issue, though. Let’s look at our table names:</p>
-<div id="cell-60" class="cell" data-execution_count="59">
-<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sqlite3</span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>db_path <span class="op">=</span> <span class="st">'trails_new.db'</span></span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>conn <span class="op">=</span> sqlite3.<span class="ex">connect</span>(db_path) <span class="co">#Establish connection with DB</span></span>
-<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>cur <span class="op">=</span> conn.cursor()</span>
-<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>cur.execute(<span class="st">"SELECT name FROM sqlite_master WHERE type='table';"</span>) <span class="co">#This specifically grabs all table names from our datbaase.</span></span>
-<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>tables <span class="op">=</span> cur.fetchall()</span>
-<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>table_names <span class="op">=</span> [table[<span class="dv">0</span>] <span class="cf">for</span> table <span class="kw">in</span> tables] <span class="co">#Places them into a list</span></span>
-<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"List of tables in the database:"</span>, table_names)</span>
-<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a>conn.close()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-62" class="cell" data-execution_count="59">
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sqlite3</span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>db_path <span class="op">=</span> <span class="st">'trails_new.db'</span></span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>conn <span class="op">=</span> sqlite3.<span class="ex">connect</span>(db_path) <span class="co">#Establish connection with DB</span></span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>cur <span class="op">=</span> conn.cursor()</span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>cur.execute(<span class="st">"SELECT name FROM sqlite_master WHERE type='table';"</span>) <span class="co">#This specifically grabs all table names from our datbaase.</span></span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>tables <span class="op">=</span> cur.fetchall()</span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>table_names <span class="op">=</span> [table[<span class="dv">0</span>] <span class="cf">for</span> table <span class="kw">in</span> tables] <span class="co">#Places them into a list</span></span>
+<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"List of tables in the database:"</span>, table_names)</span>
+<span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a>conn.close()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>List of tables in the database: ['Maine', 'California', 'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'idaho-3166', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'new-hampshire', 'new-jersey', 'new-mexico', 'new-york', 'north-carolina', 'north-dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'rhode-island', 'south-carolina', 'south-dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'west-virginia', 'Wisconsin', 'Wyoming']</code></pre>
 </div>
 </div>
 <p>Our tables aren’t completely in alphabetical order (I was testing around with Maine first, for instance). And some of them aren’t two words, like <code>south-dakota</code>, for instance. But if we compare this to what we have in <code>output</code>:</p>
-<div id="cell-62" class="cell" data-execution_count="60">
-<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="bu">set</span>(output[<span class="st">'state'</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-64" class="cell" data-execution_count="60">
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="bu">set</span>(output[<span class="st">'state'</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="60">
 <pre><code>{'California (CA)',
  'Montana (MT)',
@@ -1242,26 +1550,26 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>Here we have nice, capitalized state names with two-letter abbreviations. So, then, how are we going to fix this? We’re going to create a dictionary that essentially works as a mapping that takes what we have in <code>output</code> and matches it to what exists in <code>table_names</code> based on some matching criteria:</p>
-<div id="cell-64" class="cell" data-execution_count="61">
-<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract unique states and sort them</span></span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>unique_states_in_output <span class="op">=</span> <span class="bu">sorted</span>(<span class="bu">set</span>(output[<span class="st">'state'</span>]), key<span class="op">=</span><span class="bu">str</span>.lower)</span>
-<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>table_names <span class="op">=</span> <span class="bu">sorted</span>(table_names, key<span class="op">=</span><span class="bu">str</span>.lower)</span>
-<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> compare_letters(state_name, table_name):</span>
-<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>    clean_state_name <span class="op">=</span> <span class="st">''</span>.join(<span class="bu">filter</span>(<span class="bu">str</span>.isalpha, state_name)).lower() <span class="co">#Eliminate non-alphabetical characters, condense together</span></span>
-<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a>    clean_table_name <span class="op">=</span> <span class="st">''</span>.join(<span class="bu">filter</span>(<span class="bu">str</span>.isalpha, table_name)).lower()</span>
-<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">sorted</span>(clean_state_name) <span class="op">==</span> <span class="bu">sorted</span>(clean_table_name) <span class="co">#Gives a boolean value.</span></span>
-<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a>state_name_to_table_name <span class="op">=</span> {} <span class="co">#Create new dictionary</span></span>
-<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> state_with_abbreviation <span class="kw">in</span> unique_states_in_output:</span>
-<span id="cb34-14"><a href="#cb34-14" aria-hidden="true" tabindex="-1"></a>    state_name <span class="op">=</span> state_with_abbreviation.split(<span class="st">' ('</span>)[<span class="dv">0</span>]  <span class="co"># Get rid of the parentheses in the abbreviation (like 'South Dakota (SD)')</span></span>
-<span id="cb34-15"><a href="#cb34-15" aria-hidden="true" tabindex="-1"></a>    match <span class="op">=</span> <span class="bu">next</span>((table <span class="cf">for</span> table <span class="kw">in</span> table_names <span class="cf">if</span> compare_letters(state_name, table)), <span class="va">None</span>) <span class="co">#Generator based on whether or not names are the same</span></span>
-<span id="cb34-16"><a href="#cb34-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> match:</span>
-<span id="cb34-17"><a href="#cb34-17" aria-hidden="true" tabindex="-1"></a>        state_name_to_table_name[state_with_abbreviation] <span class="op">=</span> match <span class="co">#Update dict if match found</span></span>
-<span id="cb34-18"><a href="#cb34-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-19"><a href="#cb34-19" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(state_name_to_table_name)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-66" class="cell" data-execution_count="61">
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract unique states and sort them</span></span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>unique_states_in_output <span class="op">=</span> <span class="bu">sorted</span>(<span class="bu">set</span>(output[<span class="st">'state'</span>]), key<span class="op">=</span><span class="bu">str</span>.lower)</span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>table_names <span class="op">=</span> <span class="bu">sorted</span>(table_names, key<span class="op">=</span><span class="bu">str</span>.lower)</span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-6"><a href="#cb47-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-7"><a href="#cb47-7" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> compare_letters(state_name, table_name):</span>
+<span id="cb47-8"><a href="#cb47-8" aria-hidden="true" tabindex="-1"></a>    clean_state_name <span class="op">=</span> <span class="st">''</span>.join(<span class="bu">filter</span>(<span class="bu">str</span>.isalpha, state_name)).lower() <span class="co">#Eliminate non-alphabetical characters, condense together</span></span>
+<span id="cb47-9"><a href="#cb47-9" aria-hidden="true" tabindex="-1"></a>    clean_table_name <span class="op">=</span> <span class="st">''</span>.join(<span class="bu">filter</span>(<span class="bu">str</span>.isalpha, table_name)).lower()</span>
+<span id="cb47-10"><a href="#cb47-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">sorted</span>(clean_state_name) <span class="op">==</span> <span class="bu">sorted</span>(clean_table_name) <span class="co">#Gives a boolean value.</span></span>
+<span id="cb47-11"><a href="#cb47-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-12"><a href="#cb47-12" aria-hidden="true" tabindex="-1"></a>state_name_to_table_name <span class="op">=</span> {} <span class="co">#Create new dictionary</span></span>
+<span id="cb47-13"><a href="#cb47-13" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> state_with_abbreviation <span class="kw">in</span> unique_states_in_output:</span>
+<span id="cb47-14"><a href="#cb47-14" aria-hidden="true" tabindex="-1"></a>    state_name <span class="op">=</span> state_with_abbreviation.split(<span class="st">' ('</span>)[<span class="dv">0</span>]  <span class="co"># Get rid of the parentheses in the abbreviation (like 'South Dakota (SD)')</span></span>
+<span id="cb47-15"><a href="#cb47-15" aria-hidden="true" tabindex="-1"></a>    match <span class="op">=</span> <span class="bu">next</span>((table <span class="cf">for</span> table <span class="kw">in</span> table_names <span class="cf">if</span> compare_letters(state_name, table)), <span class="va">None</span>) <span class="co">#Generator based on whether or not names are the same</span></span>
+<span id="cb47-16"><a href="#cb47-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> match:</span>
+<span id="cb47-17"><a href="#cb47-17" aria-hidden="true" tabindex="-1"></a>        state_name_to_table_name[state_with_abbreviation] <span class="op">=</span> match <span class="co">#Update dict if match found</span></span>
+<span id="cb47-18"><a href="#cb47-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-19"><a href="#cb47-19" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(state_name_to_table_name)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>{'California (CA)': 'California', 'Montana (MT)': 'Montana', 'South Dakota (SD)': 'south-dakota', 'Utah (UT)': 'Utah', 'Washington (WA)': 'Washington', 'Wyoming (WY)': 'Wyoming'}</code></pre>
 </div>
@@ -1272,52 +1580,52 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>We actually use <code>state_name_to_table_name</code> in the <code>for</code> loop below this. We go through each of the states in <code>output</code>. Then, we extract just the part of the state name that comes before the two-letter abbreviation, and then we create a generator that individualls calls <code>compare_letters</code> on each of the names. If it returns <code>True</code>, then we have a match, which then causes the dictionary to be updated. Otherwise, nothing happens and we simply move onto the next entry (that’s why the second argument of <code>next</code> is <code>none</code>).</p>
 <p>##Logic for linking databases</p>
 <p>Our goal is to now go through each recommendation, and match up either the park or trail information corresponding to it (assuming that it’s present in the database). One issue that can arise with this, however, is that the name of the park in <code>output</code> might be different from that of the database. To mitigate this, we’re going to instead compare the coordinates of what’s in <code>output</code> to the rows inside of <code>trails_new.db</code> and <code>trails.db</code>. The idea is that if two parks are close enough to each other in terms of their coordinates, then they should represent the same thing. So, we’re going to make two functions that do similar (but different) things. One will be called <code>fetch_park_info_based_on_coords</code> which will look at parks (i.e., outside of California), and the other will be called <code>fetch_trail_info_based_on_coords</code></p>
-<div id="cell-66" class="cell" data-execution_count="62">
-<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fetch_park_info_based_on_coords(db_name, latitude, longitude, margin_lat, margin_long):</span>
-<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>    conn <span class="op">=</span> sqlite3.<span class="ex">connect</span>(db_name)</span>
-<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>    cursor <span class="op">=</span> conn.cursor() <span class="co">#Connect to database</span></span>
-<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> table_name <span class="kw">in</span> state_name_to_table_name.values(): <span class="co">#This is what we made earlier</span></span>
-<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>        cursor.execute(<span class="ss">f"SELECT * FROM </span><span class="ch">\"</span><span class="sc">{</span>table_name<span class="sc">}</span><span class="ch">\"</span><span class="ss">"</span>) <span class="co">#Grab everything from the table</span></span>
-<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>        rows <span class="op">=</span> cursor.fetchall()</span>
-<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> row <span class="kw">in</span> rows: <span class="co">#For each row</span></span>
-<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a>            coords_text <span class="op">=</span> row[<span class="dv">2</span>]  <span class="co"># Coords are in the third column</span></span>
-<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a>            <span class="cf">try</span>:</span>
-<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a>                coords <span class="op">=</span> <span class="bu">eval</span>(coords_text) <span class="co">#Kept as a tuple, essentially</span></span>
-<span id="cb36-13"><a href="#cb36-13" aria-hidden="true" tabindex="-1"></a>                lat_diff <span class="op">=</span> <span class="bu">abs</span>(coords[<span class="dv">0</span>] <span class="op">-</span> latitude)</span>
-<span id="cb36-14"><a href="#cb36-14" aria-hidden="true" tabindex="-1"></a>                long_diff <span class="op">=</span> <span class="bu">abs</span>(coords[<span class="dv">1</span>] <span class="op">-</span> longitude)</span>
-<span id="cb36-15"><a href="#cb36-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-16"><a href="#cb36-16" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> lat_diff <span class="op">&lt;</span> margin_lat <span class="kw">and</span> long_diff <span class="op">&lt;</span> margin_long:</span>
-<span id="cb36-17"><a href="#cb36-17" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">return</span> row[<span class="dv">3</span>:]  <span class="co"># Don't need name and coords</span></span>
-<span id="cb36-18"><a href="#cb36-18" aria-hidden="true" tabindex="-1"></a>            <span class="cf">except</span>:</span>
-<span id="cb36-19"><a href="#cb36-19" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span></span>
-<span id="cb36-20"><a href="#cb36-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-21"><a href="#cb36-21" aria-hidden="true" tabindex="-1"></a>    conn.close()</span>
-<span id="cb36-22"><a href="#cb36-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="va">None</span></span>
-<span id="cb36-23"><a href="#cb36-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-24"><a href="#cb36-24" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fetch_trail_info_based_on_coords(db_name, latitude, longitude, margin_lat, margin_long):</span>
-<span id="cb36-25"><a href="#cb36-25" aria-hidden="true" tabindex="-1"></a>    conn <span class="op">=</span> sqlite3.<span class="ex">connect</span>(db_name)</span>
-<span id="cb36-26"><a href="#cb36-26" aria-hidden="true" tabindex="-1"></a>    cursor <span class="op">=</span> conn.cursor()</span>
-<span id="cb36-27"><a href="#cb36-27" aria-hidden="true" tabindex="-1"></a>    table_name <span class="op">=</span> <span class="st">'California'</span>  <span class="co">#Only getting CA trails</span></span>
-<span id="cb36-28"><a href="#cb36-28" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-29"><a href="#cb36-29" aria-hidden="true" tabindex="-1"></a>    cursor.execute(<span class="ss">f"SELECT * FROM </span><span class="sc">{</span>table_name<span class="sc">}</span><span class="ss">"</span>) <span class="co">#Grab everything</span></span>
-<span id="cb36-30"><a href="#cb36-30" aria-hidden="true" tabindex="-1"></a>    rows <span class="op">=</span> cursor.fetchall()</span>
-<span id="cb36-31"><a href="#cb36-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-32"><a href="#cb36-32" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> row <span class="kw">in</span> rows:</span>
-<span id="cb36-33"><a href="#cb36-33" aria-hidden="true" tabindex="-1"></a>        coords_text <span class="op">=</span> row[<span class="dv">1</span>]  <span class="co"># Coords are in column 2</span></span>
-<span id="cb36-34"><a href="#cb36-34" aria-hidden="true" tabindex="-1"></a>        <span class="cf">try</span>:</span>
-<span id="cb36-35"><a href="#cb36-35" aria-hidden="true" tabindex="-1"></a>            coords <span class="op">=</span> <span class="bu">eval</span>(coords_text)</span>
-<span id="cb36-36"><a href="#cb36-36" aria-hidden="true" tabindex="-1"></a>            lat_diff <span class="op">=</span> <span class="bu">abs</span>(coords[<span class="dv">0</span>] <span class="op">-</span> latitude)</span>
-<span id="cb36-37"><a href="#cb36-37" aria-hidden="true" tabindex="-1"></a>            long_diff <span class="op">=</span> <span class="bu">abs</span>(coords[<span class="dv">1</span>] <span class="op">-</span> longitude)</span>
-<span id="cb36-38"><a href="#cb36-38" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-39"><a href="#cb36-39" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> lat_diff <span class="op">&lt;</span> margin_lat <span class="kw">and</span> long_diff <span class="op">&lt;</span> margin_long:</span>
-<span id="cb36-40"><a href="#cb36-40" aria-hidden="true" tabindex="-1"></a>                <span class="cf">return</span> row[<span class="dv">2</span>:]</span>
-<span id="cb36-41"><a href="#cb36-41" aria-hidden="true" tabindex="-1"></a>        <span class="cf">except</span>:</span>
-<span id="cb36-42"><a href="#cb36-42" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span>  <span class="co"># Skip rows with invalid 'Coords'</span></span>
-<span id="cb36-43"><a href="#cb36-43" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-44"><a href="#cb36-44" aria-hidden="true" tabindex="-1"></a>    conn.close()</span>
-<span id="cb36-45"><a href="#cb36-45" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="va">None</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-68" class="cell" data-execution_count="62">
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fetch_park_info_based_on_coords(db_name, latitude, longitude, margin_lat, margin_long):</span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>    conn <span class="op">=</span> sqlite3.<span class="ex">connect</span>(db_name)</span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>    cursor <span class="op">=</span> conn.cursor() <span class="co">#Connect to database</span></span>
+<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> table_name <span class="kw">in</span> state_name_to_table_name.values(): <span class="co">#This is what we made earlier</span></span>
+<span id="cb49-6"><a href="#cb49-6" aria-hidden="true" tabindex="-1"></a>        cursor.execute(<span class="ss">f"SELECT * FROM </span><span class="ch">\"</span><span class="sc">{</span>table_name<span class="sc">}</span><span class="ch">\"</span><span class="ss">"</span>) <span class="co">#Grab everything from the table</span></span>
+<span id="cb49-7"><a href="#cb49-7" aria-hidden="true" tabindex="-1"></a>        rows <span class="op">=</span> cursor.fetchall()</span>
+<span id="cb49-8"><a href="#cb49-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-9"><a href="#cb49-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> row <span class="kw">in</span> rows: <span class="co">#For each row</span></span>
+<span id="cb49-10"><a href="#cb49-10" aria-hidden="true" tabindex="-1"></a>            coords_text <span class="op">=</span> row[<span class="dv">2</span>]  <span class="co"># Coords are in the third column</span></span>
+<span id="cb49-11"><a href="#cb49-11" aria-hidden="true" tabindex="-1"></a>            <span class="cf">try</span>:</span>
+<span id="cb49-12"><a href="#cb49-12" aria-hidden="true" tabindex="-1"></a>                coords <span class="op">=</span> <span class="bu">eval</span>(coords_text) <span class="co">#Kept as a tuple, essentially</span></span>
+<span id="cb49-13"><a href="#cb49-13" aria-hidden="true" tabindex="-1"></a>                lat_diff <span class="op">=</span> <span class="bu">abs</span>(coords[<span class="dv">0</span>] <span class="op">-</span> latitude)</span>
+<span id="cb49-14"><a href="#cb49-14" aria-hidden="true" tabindex="-1"></a>                long_diff <span class="op">=</span> <span class="bu">abs</span>(coords[<span class="dv">1</span>] <span class="op">-</span> longitude)</span>
+<span id="cb49-15"><a href="#cb49-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-16"><a href="#cb49-16" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> lat_diff <span class="op">&lt;</span> margin_lat <span class="kw">and</span> long_diff <span class="op">&lt;</span> margin_long:</span>
+<span id="cb49-17"><a href="#cb49-17" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">return</span> row[<span class="dv">3</span>:]  <span class="co"># Don't need name and coords</span></span>
+<span id="cb49-18"><a href="#cb49-18" aria-hidden="true" tabindex="-1"></a>            <span class="cf">except</span>:</span>
+<span id="cb49-19"><a href="#cb49-19" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span></span>
+<span id="cb49-20"><a href="#cb49-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-21"><a href="#cb49-21" aria-hidden="true" tabindex="-1"></a>    conn.close()</span>
+<span id="cb49-22"><a href="#cb49-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="va">None</span></span>
+<span id="cb49-23"><a href="#cb49-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-24"><a href="#cb49-24" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fetch_trail_info_based_on_coords(db_name, latitude, longitude, margin_lat, margin_long):</span>
+<span id="cb49-25"><a href="#cb49-25" aria-hidden="true" tabindex="-1"></a>    conn <span class="op">=</span> sqlite3.<span class="ex">connect</span>(db_name)</span>
+<span id="cb49-26"><a href="#cb49-26" aria-hidden="true" tabindex="-1"></a>    cursor <span class="op">=</span> conn.cursor()</span>
+<span id="cb49-27"><a href="#cb49-27" aria-hidden="true" tabindex="-1"></a>    table_name <span class="op">=</span> <span class="st">'California'</span>  <span class="co">#Only getting CA trails</span></span>
+<span id="cb49-28"><a href="#cb49-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-29"><a href="#cb49-29" aria-hidden="true" tabindex="-1"></a>    cursor.execute(<span class="ss">f"SELECT * FROM </span><span class="sc">{</span>table_name<span class="sc">}</span><span class="ss">"</span>) <span class="co">#Grab everything</span></span>
+<span id="cb49-30"><a href="#cb49-30" aria-hidden="true" tabindex="-1"></a>    rows <span class="op">=</span> cursor.fetchall()</span>
+<span id="cb49-31"><a href="#cb49-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-32"><a href="#cb49-32" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> row <span class="kw">in</span> rows:</span>
+<span id="cb49-33"><a href="#cb49-33" aria-hidden="true" tabindex="-1"></a>        coords_text <span class="op">=</span> row[<span class="dv">1</span>]  <span class="co"># Coords are in column 2</span></span>
+<span id="cb49-34"><a href="#cb49-34" aria-hidden="true" tabindex="-1"></a>        <span class="cf">try</span>:</span>
+<span id="cb49-35"><a href="#cb49-35" aria-hidden="true" tabindex="-1"></a>            coords <span class="op">=</span> <span class="bu">eval</span>(coords_text)</span>
+<span id="cb49-36"><a href="#cb49-36" aria-hidden="true" tabindex="-1"></a>            lat_diff <span class="op">=</span> <span class="bu">abs</span>(coords[<span class="dv">0</span>] <span class="op">-</span> latitude)</span>
+<span id="cb49-37"><a href="#cb49-37" aria-hidden="true" tabindex="-1"></a>            long_diff <span class="op">=</span> <span class="bu">abs</span>(coords[<span class="dv">1</span>] <span class="op">-</span> longitude)</span>
+<span id="cb49-38"><a href="#cb49-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-39"><a href="#cb49-39" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> lat_diff <span class="op">&lt;</span> margin_lat <span class="kw">and</span> long_diff <span class="op">&lt;</span> margin_long:</span>
+<span id="cb49-40"><a href="#cb49-40" aria-hidden="true" tabindex="-1"></a>                <span class="cf">return</span> row[<span class="dv">2</span>:]</span>
+<span id="cb49-41"><a href="#cb49-41" aria-hidden="true" tabindex="-1"></a>        <span class="cf">except</span>:</span>
+<span id="cb49-42"><a href="#cb49-42" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span>  <span class="co"># Skip rows with invalid 'Coords'</span></span>
+<span id="cb49-43"><a href="#cb49-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-44"><a href="#cb49-44" aria-hidden="true" tabindex="-1"></a>    conn.close()</span>
+<span id="cb49-45"><a href="#cb49-45" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="va">None</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Okay, so, it will make a lot more sense if we actually inspect the structure of our database again. Click the link below to see screenshots of two <code>.csv</code> files: the first of parks in Wyoming, and the second is of trails in California:</p>
 <p>https://imgur.com/a/6fCixEt</p>
@@ -1328,47 +1636,47 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="putting-it-all-together" class="level2">
 <h2 class="anchored" data-anchor-id="putting-it-all-together">Putting it all together</h2>
 <p>The first thing we’re going to do is to specify the names of the new columns that we want to put into <code>california_df</code> and <code>non_california_df</code>. I’ve just grabbed these from the database:</p>
-<div id="cell-68" class="cell" data-execution_count="65">
-<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>new_columns <span class="op">=</span> [</span>
-<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Trails (view details)'</span>, <span class="st">'Total Distance'</span>, <span class="st">'State Ranking'</span>,</span>
-<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Access Road/Trail'</span>, <span class="st">'White'</span>, <span class="st">'Green'</span>, <span class="st">'Blue'</span>, <span class="st">'Black'</span>,</span>
-<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Double Black Diamond'</span>, <span class="st">'Proline'</span></span>
-<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>]</span>
-<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>new_trail_columns <span class="op">=</span> [</span>
-<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Distance'</span>, <span class="st">'Avg time'</span>, <span class="st">'Climb'</span>, <span class="st">'Descent'</span>, <span class="st">'Activities'</span>,</span>
-<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Riding Area'</span>, <span class="st">'Difficulty Rating'</span>, <span class="st">'Dogs Allowed'</span>,</span>
-<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Local Popularity'</span>, <span class="st">'Altitude start'</span>, <span class="st">'Altitude end'</span>, <span class="st">'Grade'</span></span>
-<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-70" class="cell" data-execution_count="65">
+<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>new_columns <span class="op">=</span> [</span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Trails (view details)'</span>, <span class="st">'Total Distance'</span>, <span class="st">'State Ranking'</span>,</span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Access Road/Trail'</span>, <span class="st">'White'</span>, <span class="st">'Green'</span>, <span class="st">'Blue'</span>, <span class="st">'Black'</span>,</span>
+<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Double Black Diamond'</span>, <span class="st">'Proline'</span></span>
+<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb50-6"><a href="#cb50-6" aria-hidden="true" tabindex="-1"></a>new_trail_columns <span class="op">=</span> [</span>
+<span id="cb50-7"><a href="#cb50-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Distance'</span>, <span class="st">'Avg time'</span>, <span class="st">'Climb'</span>, <span class="st">'Descent'</span>, <span class="st">'Activities'</span>,</span>
+<span id="cb50-8"><a href="#cb50-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Riding Area'</span>, <span class="st">'Difficulty Rating'</span>, <span class="st">'Dogs Allowed'</span>,</span>
+<span id="cb50-9"><a href="#cb50-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Local Popularity'</span>, <span class="st">'Altitude start'</span>, <span class="st">'Altitude end'</span>, <span class="st">'Grade'</span></span>
+<span id="cb50-10"><a href="#cb50-10" aria-hidden="true" tabindex="-1"></a>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Now, all we need to do is iterate through the rows of <code>non_california_df</code> to match up the entires!</p>
-<div id="cell-70" class="cell" data-execution_count="68">
-<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>margin_lat <span class="op">=</span> <span class="fl">0.1</span>  <span class="co"># Decently generous</span></span>
-<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>margin_long <span class="op">=</span> <span class="fl">0.1</span></span>
-<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> index, row <span class="kw">in</span> non_california_df.iterrows():</span>
-<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> pd.isna(row[<span class="st">'Latitude'</span>]) <span class="kw">or</span> pd.isna(row[<span class="st">'Longitude'</span>]): <span class="co">#Some parks have NA coordinates</span></span>
-<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">continue</span></span>
-<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>    park_info <span class="op">=</span> fetch_park_info_based_on_coords(<span class="st">'trails_new (1).db'</span>, row[<span class="st">'Latitude'</span>], row[<span class="st">'Longitude'</span>], margin_lat, margin_long)</span>
-<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">#Remember, this grabs almost all of the columns if a match is found</span></span>
-<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> park_info:</span>
-<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>        non_california_df.loc[index, new_columns] <span class="op">=</span> park_info <span class="co">#We can mass-add new columns</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-72" class="cell" data-execution_count="68">
+<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>margin_lat <span class="op">=</span> <span class="fl">0.1</span>  <span class="co"># Decently generous</span></span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>margin_long <span class="op">=</span> <span class="fl">0.1</span></span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> index, row <span class="kw">in</span> non_california_df.iterrows():</span>
+<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> pd.isna(row[<span class="st">'Latitude'</span>]) <span class="kw">or</span> pd.isna(row[<span class="st">'Longitude'</span>]): <span class="co">#Some parks have NA coordinates</span></span>
+<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">continue</span></span>
+<span id="cb51-6"><a href="#cb51-6" aria-hidden="true" tabindex="-1"></a>    park_info <span class="op">=</span> fetch_park_info_based_on_coords(<span class="st">'trails_new (1).db'</span>, row[<span class="st">'Latitude'</span>], row[<span class="st">'Longitude'</span>], margin_lat, margin_long)</span>
+<span id="cb51-7"><a href="#cb51-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">#Remember, this grabs almost all of the columns if a match is found</span></span>
+<span id="cb51-8"><a href="#cb51-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> park_info:</span>
+<span id="cb51-9"><a href="#cb51-9" aria-hidden="true" tabindex="-1"></a>        non_california_df.loc[index, new_columns] <span class="op">=</span> park_info <span class="co">#We can mass-add new columns</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>In the above code, we use the <code>fetch_park_info_based_on_coords</code> function to essentially create a new data frame that contains the information that we want once we match the coordinates. Then, we insert all of these as new columns, taking advantage of the <code>.loc()</code> method from <code>pandas</code>. Now let’s do the same thing for the California <code>df</code>:</p>
-<div id="cell-72" class="cell" data-execution_count="69">
-<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> index, row <span class="kw">in</span> california_df.iterrows():</span>
-<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> pd.isna(row[<span class="st">'Latitude'</span>]) <span class="kw">or</span> pd.isna(row[<span class="st">'Longitude'</span>]):</span>
-<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">continue</span></span>
-<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>    park_info <span class="op">=</span> fetch_trail_info_based_on_coords(<span class="st">'trails.db'</span>, row[<span class="st">'Latitude'</span>], row[<span class="st">'Longitude'</span>], margin_lat, margin_long)</span>
-<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> park_info <span class="kw">and</span> <span class="bu">len</span>(park_info) <span class="op">==</span> <span class="bu">len</span>(new_trail_columns):</span>
-<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a>        california_df.loc[index, new_trail_columns] <span class="op">=</span> park_info</span>
-<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
-<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">pass</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-74" class="cell" data-execution_count="69">
+<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> index, row <span class="kw">in</span> california_df.iterrows():</span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> pd.isna(row[<span class="st">'Latitude'</span>]) <span class="kw">or</span> pd.isna(row[<span class="st">'Longitude'</span>]):</span>
+<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">continue</span></span>
+<span id="cb52-5"><a href="#cb52-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb52-6"><a href="#cb52-6" aria-hidden="true" tabindex="-1"></a>    park_info <span class="op">=</span> fetch_trail_info_based_on_coords(<span class="st">'trails.db'</span>, row[<span class="st">'Latitude'</span>], row[<span class="st">'Longitude'</span>], margin_lat, margin_long)</span>
+<span id="cb52-7"><a href="#cb52-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb52-8"><a href="#cb52-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> park_info <span class="kw">and</span> <span class="bu">len</span>(park_info) <span class="op">==</span> <span class="bu">len</span>(new_trail_columns):</span>
+<span id="cb52-9"><a href="#cb52-9" aria-hidden="true" tabindex="-1"></a>        california_df.loc[index, new_trail_columns] <span class="op">=</span> park_info</span>
+<span id="cb52-10"><a href="#cb52-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb52-11"><a href="#cb52-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">pass</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Okay, let’s take a look at our results!</p>
-<div id="cell-74" class="cell" data-execution_count="70">
-<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>non_california_df</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-76" class="cell" data-execution_count="70">
+<div class="sourceCode cell-code" id="cb53"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a>non_california_df</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="70">
 <div>
 
@@ -1625,8 +1933,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>Success! It looks like we unfortunately have a few NA values. Unfortunately, it’s hard to guarantee precision in the coordinates. We only had one trail for California:</p>
-<div id="cell-76" class="cell" data-execution_count="71">
-<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>california_df</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-78" class="cell" data-execution_count="71">
+<div class="sourceCode cell-code" id="cb54"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>california_df</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="71">
 <div>
 
